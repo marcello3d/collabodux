@@ -1,9 +1,11 @@
 export interface ModelState {
   title: string;
+  subtitle: string;
   todos: Todo[];
 }
-export const initialModelState = {
+export const initialModelState: ModelState = {
   title: '',
+  subtitle: '',
   todos: [],
 };
 

@@ -1,20 +1,15 @@
 .root {
-  width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #444;
 }
 
 .head {
   flex-shrink: 0;
-  color: #eee;
   padding: 10px;
   font-size: 20px;
 }
 .head a {
-  color: #ddc8ee;
+  color: #6f39ee;
 }
 
 main {
