@@ -14,10 +14,7 @@ import * as http from 'http';
 
 export default class ServerHandler {
   private state: ModelState = initialModelState;
-  private _vtag: number = 1;
-  private get vtag(): string {
-    return this._vtag.toString(36);
-  };
+  private vtag: string = uuidv4();
 
   constructor(private wss: Server) {}
 
@@ -87,16 +84,15 @@ export default class ServerHandler {
       });
     } else {
       this.state = applyPatches(this.state, patches);
-      this._vtag += 1;
-      const vtag = this.vtag;
+      this.vtag = uuidv4();
       this.send(socket, {
         type: MessageType.accept,
         req,
-        vtag,
+        vtag: this.vtag,
       });
       this.broadcast(socket, {
         type: MessageType.change,
-        vtag,
+        vtag: this.vtag,
         patches,
       });
     }

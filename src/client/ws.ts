@@ -4,11 +4,10 @@ import {
   MessageType,
   RejectMessage,
   RequestMessage,
-  ResponseMessage, StateMessage,
+  ResponseMessage,
+  StateMessage,
 } from '../shared/messages';
 import { Patch } from 'immer';
-import uuidv4 from 'uuid/v4';
-
 
 type Responder = {
   resolve: (message: AcceptMessage | RejectMessage) => void;
