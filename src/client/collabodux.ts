@@ -1,62 +1,70 @@
-import produce, { applyPatches, Draft, Patch } from 'immer';
+import { applyPatches, Patch } from 'immer';
 import { Connection } from './ws';
 import { ChangeMessage, MessageType, StateMessage } from '../shared/messages';
 
-interface PendingAction<State> {
-  fn: (draft: Draft<State>) => void;
+interface PendingAction<Action> {
+  action: Action;
   patches: Patch[];
 }
+export type PatchReducer<State, Action> = (
+  priorState: State,
+  action: Action,
+) => Patch[];
+export type Subscriber<State> = (newState: State) => void;
 
-type Subscriber<State> = (newState: State) => void;
-
-export class Client<State> {
-  pendingActions: PendingAction<State>[] = [];
+export class Collabodux<State extends {}, ActionType> {
+  private pendingActions: PendingAction<ActionType>[] = [];
   private serverState!: State;
   private vtag!: string;
-  localState: State;
+  private _localState: State;
 
   private subscribers = new Set<Subscriber<State>>();
 
-  constructor (initialState: State, private connection: Connection) {
-    this.localState = initialState;
+  constructor(
+    private connection: Connection,
+    private reducer: PatchReducer<State, ActionType>,
+  ) {
+    this._localState = {} as State;
     this.connection.onChangeMessage = this.onChangeMessage;
     this.connection.onStateMessage = this.onStateMessage;
   }
 
+  get localState(): State {
+    return this._localState;
+  }
+
   subscribe(subscriber: Subscriber<State>): () => void {
     if (!this.subscribers.has(subscriber)) {
-      subscriber(this.localState);
+      subscriber(this._localState);
       this.subscribers.add(subscriber);
       return () => this.subscribers.delete(subscriber);
     }
     return () => {};
   }
 
-  private updateSubscribers() {
-    this.subscribers.forEach((subscriber) => subscriber(this.localState));
+  private updateSubscribers(): void {
+    this.subscribers.forEach((subscriber) => subscriber(this._localState));
   }
 
-  // TODO: we could pass actions in here and have a global reducer function in the Client
-  propose(fn: (draft: Draft<State>) => void) {
-    let patches: Patch[] = [];
-    this.localState = produce(this.localState, fn, (_patches) => {
-      patches = _patches;
-    });
+  propose(action: ActionType): void {
+    const state = this._localState;
+    const patches = this.reducer(state, action);
+    this._localState = applyPatches(state, patches);
     this.updateSubscribers();
-    this.pendingActions.push({ fn, patches });
+    this.pendingActions.push({ action, patches });
     if (this.pendingActions.length === 1) {
       this.sendNextPendingChange();
     }
   }
 
-  onStateMessage = ({ state, vtag }: StateMessage) => {
+  onStateMessage = ({ state = {}, vtag }: StateMessage): void => {
     this.serverState = state;
     this.vtag = vtag;
     this.replayPendingActions();
     this.updateSubscribers();
   };
 
-  onChangeMessage = ({ patches, vtag }: ChangeMessage) => {
+  onChangeMessage = ({ patches, vtag }: ChangeMessage): void => {
     this.serverState = applyPatches(this.serverState, patches);
     this.vtag = vtag;
     // TODO: we can look at patches and see if it conflicts with any patches in pendingActions to be smart about stuff
@@ -64,20 +72,22 @@ export class Client<State> {
     this.updateSubscribers();
   };
 
-  private replayPendingActions() {
+  private replayPendingActions(): void {
     const { pendingActions } = this;
-    this.localState = this.serverState;
+    this._localState = this.serverState;
     this.pendingActions = [];
-    pendingActions.forEach(({ fn }) => {
+    pendingActions.forEach(({ action }) => {
       try {
-        this.propose(fn);
+        this.propose(action);
       } catch (e) {
-        console.warn(`Dropped change ${fn}, it could not be applied anymore: ${e}`);
+        console.warn(
+          `Dropped action ${action}, it could not be applied anymore: ${e}`,
+        );
       }
-    })
+    });
   }
 
-  async sendNextPendingChange() {
+  private async sendNextPendingChange(): Promise<void> {
     const { patches } = this.pendingActions[0];
     const response = await this.connection.requestChange(this.vtag, patches);
     switch (response.type) {

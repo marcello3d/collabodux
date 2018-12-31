@@ -12,7 +12,7 @@ import { Patch } from 'immer';
 type Responder = {
   resolve: (message: AcceptMessage | RejectMessage) => void;
   reject: (error: Error) => void;
-}
+};
 export class Connection {
   constructor(private ws: WebSocket) {
     ws.onmessage = this.onMessage;
@@ -30,7 +30,10 @@ export class Connection {
     this.ws.send(JSON.stringify(message));
   }
 
-  requestChange(vtag: string, patches: Patch[]): Promise<AcceptMessage | RejectMessage> {
+  requestChange(
+    vtag: string,
+    patches: Patch[],
+  ): Promise<AcceptMessage | RejectMessage> {
     const req = (this.nextRequestId++).toString(36);
     this.send({
       type: MessageType.change,
@@ -63,7 +66,7 @@ export class Connection {
         const promise = this.promises.get(message.req);
         if (promise) {
           promise.resolve(message);
-          this.promises.delete(message.req)
+          this.promises.delete(message.req);
         }
         break;
     }

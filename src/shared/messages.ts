@@ -25,7 +25,7 @@ export type RequestChangeMessage = {
   patches: Patch[];
 };
 export type GetStateMessage = {
-  type: MessageType.getState
+  type: MessageType.getState;
 };
 
 export type ErrorMessage = {

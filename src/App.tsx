@@ -1,86 +1,96 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import styles from './App.module.css';
-import { useClientLocalState } from './client/useClient';
-import { initialModelState, ModelState } from './shared/model';
-import { Client } from './client/client';
+import { useMappedLocalState } from './client/collabodux-hooks';
+import { Collabodux } from './client/collabodux';
 import { Connection } from './client/ws';
-
+import {
+  addTodo,
+  setSubtitle,
+  setTitle,
+  setTodoDone,
+  setTodoLabel,
+} from './dux/actions';
+import { reducer } from './dux/reducer';
+import { usePropose } from './client/collabodux-fsa-hooks';
 
 const connection = new Connection(new WebSocket('ws://localhost:4000'));
-const client = new Client<ModelState>(initialModelState, connection);
+const collabodux = new Collabodux(connection, reducer);
 
 export function App() {
-  const {
-    title,
-    subtitle,
-    todos,
-  } = useClientLocalState(client);
-  const onTitleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.currentTarget.value;
-      client.propose((draft) => {
-        draft.title = value;
-      })
+  const proposeSetTitle = usePropose(collabodux, setTitle);
+  const proposeSetSubtitle = usePropose(collabodux, setSubtitle);
+  const proposeSetTodoDone = usePropose(collabodux, setTodoDone);
+  const proposeSetTodoLabel = usePropose(collabodux, setTodoLabel);
+  const proposeAddTodo = usePropose(collabodux, addTodo);
+
+  const { title, subtitle, todos } = useMappedLocalState(
+    collabodux,
+    ({ title = '', subtitle = '', todos = [] }) => {
+      return {
+        title,
+        subtitle,
+        todos,
+      };
     },
-    [client]
-  );
-  const onSubtitleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.currentTarget.value;
-      client.propose((draft) => {
-        draft.subtitle = value;
-      })
-    },
-    [client]
-  );
-  const onToggleTodo = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const index = Number(event.currentTarget.getAttribute('data-index'));
-      const checked = event.currentTarget.checked;
-      client.propose((draft) => {
-        draft.todos[index].done = checked;
-      })
-    },
-    [client]
-  );
-  const onChangeTodo = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const index = Number(event.currentTarget.getAttribute('data-index'));
-      const value = event.currentTarget.value;
-      client.propose((draft) => {
-        draft.todos[index].label = value;
-      })
-    },
-    [client]
-  );
-  const onClickAddTodo = useCallback(
-    () => client.propose((draft) => {
-      draft.todos.push({
-        label: '',
-        done: false,
-      });
-    }),
-    [client]
   );
   return (
     <div className={styles.root}>
       <header className={styles.head}>
-        Collabadux 1 by <a href="https://marcello.cellosoft.com/">marcello</a>
+        Collabodux 1 by <a href="https://marcello.cellosoft.com/">marcello</a>
       </header>
       <main>
         <div>
-          <label>Title: <input value={title} onChange={onTitleChange} /></label>
+          <label>
+            Title:{' '}
+            <input
+              value={title}
+              onChange={({ target }) =>
+                proposeSetTitle({ title: target.value })
+              }
+            />
+          </label>
         </div>
         <div>
-          <label>Subtitle: <input value={subtitle} onChange={onSubtitleChange} /></label>
+          <label>
+            Subtitle:{' '}
+            <input
+              value={subtitle}
+              onChange={({ target }) =>
+                proposeSetSubtitle({ subtitle: target.value })
+              }
+            />
+          </label>
         </div>
         <ul>
-          {todos.map((todo, index) =>
+          {todos.map((todo, index) => (
             <li key={index}>
-              <input type="checkbox" checked={todo.done} onChange={onToggleTodo} data-index={index} /> <input type="text" value={todo.label} onChange={onChangeTodo} data-index={index} />
-            </li>)
-          }
-          <li><button onClick={onClickAddTodo}>Add…</button></li>
+              <input
+                type="checkbox"
+                checked={todo.done}
+                onChange={({ target }) =>
+                  proposeSetTodoDone({
+                    index: Number(target.getAttribute('data-index')),
+                    done: target.checked,
+                  })
+                }
+                data-index={index}
+              />{' '}
+              <input
+                type="text"
+                value={todo.label}
+                onChange={({ target }) =>
+                  proposeSetTodoLabel({
+                    index: Number(target.getAttribute('data-index')),
+                    label: target.value,
+                  })
+                }
+                data-index={index}
+              />
+            </li>
+          ))}
+          <li>
+            <button onClick={() => proposeAddTodo()}>Add…</button>
+          </li>
         </ul>
       </main>
     </div>

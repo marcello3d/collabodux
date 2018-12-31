@@ -1,21 +1,24 @@
-import { Action, ActionCreator, AnyAction } from 'typescript-fsa';
-import { Reducer } from 'redux';
+import { Action, ActionCreator } from 'typescript-fsa';
+import { PatchReducer } from '../client/collabodux';
 
-export type ActionHandler<State, Payload> = (
-  state: State,
-  action: Action<Payload>,
-) => State;
+export type ActionHandler<State, Payload> = PatchReducer<
+  State,
+  Action<Payload>
+>;
 
-export type FsaReducerBuilder<State, BasePayload> = {
+export interface FsaReducerBuilder<State, BasePayload> {
   add<Payload extends BasePayload>(
     actionCreator: ActionCreator<Payload>,
     actionHandler: ActionHandler<State, Payload>,
   ): FsaReducerBuilder<State, BasePayload>;
 
-  build(): Reducer<State, Action<BasePayload>>;
+  build(): PatchReducer<State, Action<BasePayload>>;
 }
 
-export function fsaReducerBuilder<State, BasePayload = any>(initialState: State): FsaReducerBuilder<State, BasePayload> {
+export function fsaPatchReducerBuilder<
+  State,
+  BasePayload = any
+>(): FsaReducerBuilder<State, BasePayload> {
   const map = new Map<string, ActionHandler<State, any>>();
   return {
     add<Payload extends BasePayload>(
@@ -25,13 +28,13 @@ export function fsaReducerBuilder<State, BasePayload = any>(initialState: State)
       map.set(actionCreator.type, actionHandler);
       return this;
     },
-    build(): Reducer<State, Action<BasePayload>> {
-      return (state = initialState, action) => {
+    build(): PatchReducer<State, Action<BasePayload>> {
+      return (state, action) => {
         const handler = map.get(action.type);
         if (handler) {
           return handler(state, action);
         }
-        return state;
+        return [];
       };
     },
   };

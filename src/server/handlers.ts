@@ -8,12 +8,11 @@ import {
   RequestMessage,
   ResponseMessage,
 } from '../shared/messages';
-import { initialModelState, ModelState } from '../shared/model';
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
 
 export default class ServerHandler {
-  private state: ModelState = initialModelState;
+  private state: any = {};
   private vtag: string = uuidv4();
 
   constructor(private wss: Server) {}
@@ -76,7 +75,10 @@ export default class ServerHandler {
     });
   }
 
-  private handleRequestChange(socket: WebSocket, { req, vtag, patches }: RequestChangeMessage) {
+  private handleRequestChange(
+    socket: WebSocket,
+    { req, vtag, patches }: RequestChangeMessage,
+  ) {
     if (vtag !== this.vtag) {
       this.send(socket, {
         type: MessageType.reject,
