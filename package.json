@@ -1,7 +1,7 @@
 {
-  "name": "buckwheat",
+  "name": "collabodux",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "dependencies": {
     "@types/jest": "23.3.10",
     "@types/node": "10.12.10",
