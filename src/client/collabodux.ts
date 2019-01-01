@@ -1,19 +1,21 @@
-import { applyPatches, Patch } from 'immer';
 import { Connection } from './ws';
 import { ChangeMessage, MessageType, StateMessage } from '../shared/messages';
 
-interface PendingAction<Action> {
+interface PendingAction<Action, Patch> {
   action: Action;
-  patches: Patch[];
+  patch: Patch;
 }
-export type PatchReducer<State, Action> = (
-  priorState: State,
+export type PatchReducer<State, Action, Patch> = (
+  state: State,
   action: Action,
-) => Patch[];
+) => Patch | undefined;
+
+export type PatchApplier<State, Patch> = (state: State, patch: Patch) => State;
+
 export type Subscriber<State> = (newState: State) => void;
 
-export class Collabodux<State extends {}, ActionType> {
-  private pendingActions: PendingAction<ActionType>[] = [];
+export class Collabodux<State, ActionType, Patch> {
+  private pendingActions: PendingAction<ActionType, Patch>[] = [];
   private serverState!: State;
   private vtag!: string;
   private _localState: State;
@@ -21,8 +23,9 @@ export class Collabodux<State extends {}, ActionType> {
   private subscribers = new Set<Subscriber<State>>();
 
   constructor(
-    private connection: Connection,
-    private reducer: PatchReducer<State, ActionType>,
+    private connection: Connection<Patch>,
+    private reducer: PatchReducer<State, ActionType, Patch>,
+    private applyPatch: PatchApplier<State, Patch>,
   ) {
     this._localState = {} as State;
     this.connection.onChangeMessage = this.onChangeMessage;
@@ -48,10 +51,13 @@ export class Collabodux<State extends {}, ActionType> {
 
   propose(action: ActionType): void {
     const state = this._localState;
-    const patches = this.reducer(state, action);
-    this._localState = applyPatches(state, patches);
+    const patch = this.reducer(state, action);
+    if (patch === undefined) {
+      return;
+    }
+    this._localState = this.applyPatch(state, patch);
     this.updateSubscribers();
-    this.pendingActions.push({ action, patches });
+    this.pendingActions.push({ action, patch });
     if (this.pendingActions.length === 1) {
       this.sendNextPendingChange();
     }
@@ -64,8 +70,8 @@ export class Collabodux<State extends {}, ActionType> {
     this.updateSubscribers();
   };
 
-  onChangeMessage = ({ patches, vtag }: ChangeMessage): void => {
-    this.serverState = applyPatches(this.serverState, patches);
+  onChangeMessage = ({ patch, vtag }: ChangeMessage<Patch>): void => {
+    this.serverState = this.applyPatch(this.serverState, patch);
     this.vtag = vtag;
     // TODO: we can look at patches and see if it conflicts with any patches in pendingActions to be smart about stuff
     this.replayPendingActions();
@@ -88,8 +94,8 @@ export class Collabodux<State extends {}, ActionType> {
   }
 
   private async sendNextPendingChange(): Promise<void> {
-    const { patches } = this.pendingActions[0];
-    const response = await this.connection.requestChange(this.vtag, patches);
+    const { patch } = this.pendingActions[0];
+    const response = await this.connection.requestChange(this.vtag, patch);
     switch (response.type) {
       case MessageType.reject:
         console.warn('Change rejected; outdated');
@@ -97,7 +103,7 @@ export class Collabodux<State extends {}, ActionType> {
         break;
 
       case MessageType.accept:
-        this.serverState = applyPatches(this.serverState, patches);
+        this.serverState = this.applyPatch(this.serverState, patch);
         this.vtag = response.vtag;
         this.pendingActions.shift();
         if (this.pendingActions.length) {

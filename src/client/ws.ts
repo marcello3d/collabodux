@@ -7,39 +7,38 @@ import {
   ResponseMessage,
   StateMessage,
 } from '../shared/messages';
-import { Patch } from 'immer';
 
 type Responder = {
   resolve: (message: AcceptMessage | RejectMessage) => void;
   reject: (error: Error) => void;
 };
-export class Connection {
+export class Connection<Patch> {
   constructor(private ws: WebSocket) {
     ws.onmessage = this.onMessage;
     ws.onclose = this.onClose;
     ws.onerror = this.onError;
   }
   public onStateMessage?: (message: StateMessage) => void;
-  public onChangeMessage?: (message: ChangeMessage) => void;
+  public onChangeMessage?: (message: ChangeMessage<Patch>) => void;
 
   private promises = new Map<string, Responder>();
   private nextRequestId: number = 1;
 
-  send(message: RequestMessage) {
+  send(message: RequestMessage<Patch>) {
     console.log('sending message', message);
     this.ws.send(JSON.stringify(message));
   }
 
   requestChange(
     vtag: string,
-    patches: Patch[],
+    patch: Patch,
   ): Promise<AcceptMessage | RejectMessage> {
     const req = (this.nextRequestId++).toString(36);
     this.send({
       type: MessageType.change,
       req,
       vtag,
-      patches,
+      patch,
     });
     return new Promise<AcceptMessage | RejectMessage>((resolve, reject) => {
       this.promises.set(req, { resolve, reject });
@@ -47,7 +46,7 @@ export class Connection {
   }
 
   private onMessage = (event: MessageEvent) => {
-    const message = JSON.parse(event.data) as ResponseMessage;
+    const message = JSON.parse(event.data) as ResponseMessage<Patch>;
     console.log('got message', message);
     switch (message.type) {
       case MessageType.state:

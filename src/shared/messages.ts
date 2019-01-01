@@ -1,5 +1,3 @@
-import { Patch } from 'immer';
-
 export enum MessageType {
   error = 'error',
   state = 'state',
@@ -9,20 +7,20 @@ export enum MessageType {
   getState = 'getState',
 }
 
-export type RequestMessage = RequestChangeMessage | GetStateMessage;
+export type RequestMessage<Patch> = RequestChangeMessage<Patch> | GetStateMessage;
 
-export type ResponseMessage =
+export type ResponseMessage<Patch> =
   | ErrorMessage
   | StateMessage
   | RejectMessage
   | AcceptMessage
-  | ChangeMessage;
+  | ChangeMessage<Patch>;
 
-export type RequestChangeMessage = {
+export type RequestChangeMessage<Patch> = {
   type: MessageType.change;
   req: string;
   vtag: string;
-  patches: Patch[];
+  patch: Patch;
 };
 export type GetStateMessage = {
   type: MessageType.getState;
@@ -50,9 +48,9 @@ export type AcceptMessage = {
   vtag: string;
 };
 
-export type ChangeMessage = {
+export type ChangeMessage<Patch> = {
   type: MessageType.change;
   vtag: string;
   user: string;
-  patches: Patch[];
+  patch: Patch;
 };

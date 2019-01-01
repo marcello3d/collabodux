@@ -6,10 +6,14 @@ import {
   setTodoLabel,
 } from './actions';
 import { patch } from './immer';
-import { fsaPatchReducerBuilder } from './fsa-patch-reducer-builder';
+import { fsaReducerBuilder } from './fsa-reducer-builder';
 import { ModelState, Todo } from './model';
+import { applyPatches, Patch } from 'immer';
 
-export const reducer = fsaPatchReducerBuilder<ModelState>()
+export const applyPatch = (state: ModelState, patch: Patch[]) =>
+  applyPatches(state, patch);
+
+export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
   .add(
     setTitle,
     patch((draft, { title }) => {

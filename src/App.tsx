@@ -10,11 +10,15 @@ import {
   setTodoDone,
   setTodoLabel,
 } from './dux/actions';
-import { reducer } from './dux/reducer';
+import { applyPatch, reducer } from './dux/reducer';
 import { usePropose } from './client/collabodux-fsa-hooks';
+import { ModelState } from './dux/model';
+import { Patch } from 'immer';
 
-const connection = new Connection(new WebSocket('ws://localhost:4000'));
-const collabodux = new Collabodux(connection, reducer);
+const connection = new Connection<Patch[]>(
+  new WebSocket('ws://localhost:4000'),
+);
+const collabodux = new Collabodux(connection, reducer, applyPatch);
 
 export function App() {
   const proposeSetTitle = usePropose(collabodux, setTitle);
@@ -25,7 +29,8 @@ export function App() {
 
   const { title, subtitle, todos } = useMappedLocalState(
     collabodux,
-    ({ title = '', subtitle = '', todos = [] }) => {
+    (state: ModelState) => {
+      const { title = '', subtitle = '', todos = [] } = state;
       return {
         title,
         subtitle,

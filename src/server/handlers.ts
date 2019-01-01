@@ -1,24 +1,31 @@
 import WebSocket, { Server } from 'ws';
 import uuidv4 from 'uuid/v4';
-import { applyPatches } from 'immer';
 
-import { MessageType, RequestChangeMessage, RequestMessage, ResponseMessage } from '../shared/messages';
+import {
+  MessageType,
+  RequestChangeMessage,
+  RequestMessage,
+  ResponseMessage,
+} from '../shared/messages';
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
 
-export default class ServerHandler {
+export default class ServerHandler<Patch> {
   private state: any = {};
   private vtag: string = uuidv4();
   private users = new Map<WebSocket, string>();
 
-  constructor(private wss: Server) {}
+  constructor(
+    private wss: Server,
+    private applyPatch: (state: any, patch: Patch) => any,
+  ) {}
 
   onMessage = ({ data, type, target }: WSMessageEvent) => {
     try {
       if (typeof data !== 'string') {
         throw new Error('unexpected data type');
       }
-      this.handleMessage(target, JSON.parse(data) as RequestMessage);
+      this.handleMessage(target, JSON.parse(data) as RequestMessage<Patch>);
     } catch (e) {
       this.closeSocketWithError(target, e);
     }
@@ -32,18 +39,20 @@ export default class ServerHandler {
 
   onConnection = (socket: WebSocket, request: http.IncomingMessage) => {
     const id = uuidv4();
-    console.log(`[${id}] New connection from ${formatAddress(request.socket.address())}`);
+    console.log(
+      `[${id}] New connection from ${formatAddress(request.socket.address())}`,
+    );
     socket.onmessage = this.onMessage;
     socket.onclose = this.onClose;
     this.users.set(socket, id);
     this.sendState(socket);
   };
 
-  send(socket: WebSocket, response: ResponseMessage) {
+  send(socket: WebSocket, response: ResponseMessage<Patch>) {
     socket.send(JSON.stringify(response));
   }
 
-  broadcast(skipSocket: WebSocket, response: ResponseMessage) {
+  broadcast(skipSocket: WebSocket, response: ResponseMessage<Patch>) {
     const message = JSON.stringify(response);
     this.wss.clients.forEach((client) => {
       if (client !== skipSocket) {
@@ -52,7 +61,7 @@ export default class ServerHandler {
     });
   }
 
-  handleMessage(socket: WebSocket, request: RequestMessage) {
+  handleMessage(socket: WebSocket, request: RequestMessage<Patch>) {
     switch (request.type) {
       case MessageType.change:
         return this.handleRequestChange(socket, request);
@@ -76,7 +85,7 @@ export default class ServerHandler {
 
   private handleRequestChange(
     socket: WebSocket,
-    { req, vtag, patches }: RequestChangeMessage,
+    { req, vtag, patch }: RequestChangeMessage<Patch>,
   ) {
     if (vtag !== this.vtag) {
       this.send(socket, {
@@ -90,7 +99,7 @@ export default class ServerHandler {
         this.closeSocketWithError(socket, new Error('invalid user'));
         return;
       }
-      this.state = applyPatches(this.state, patches);
+      this.state = this.applyPatch(this.state, patch);
       this.vtag = uuidv4();
       this.send(socket, {
         type: MessageType.accept,
@@ -101,7 +110,7 @@ export default class ServerHandler {
         type: MessageType.change,
         vtag: this.vtag,
         user,
-        patches,
+        patch,
       });
     }
   }
