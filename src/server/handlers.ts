@@ -2,18 +2,14 @@ import WebSocket, { Server } from 'ws';
 import uuidv4 from 'uuid/v4';
 import { applyPatches } from 'immer';
 
-import {
-  MessageType,
-  RequestChangeMessage,
-  RequestMessage,
-  ResponseMessage,
-} from '../shared/messages';
+import { MessageType, RequestChangeMessage, RequestMessage, ResponseMessage } from '../shared/messages';
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
 
 export default class ServerHandler {
   private state: any = {};
   private vtag: string = uuidv4();
+  private users = new Map<WebSocket, string>();
 
   constructor(private wss: Server) {}
 
@@ -29,14 +25,17 @@ export default class ServerHandler {
   };
 
   onClose = (event: WSCloseEvent) => {
-    console.log(`Lost connection from ${event.target}`);
+    const id = this.users.get(event.target);
+    this.users.delete(event.target);
+    console.log(`[${id}] Connection lost`);
   };
 
   onConnection = (socket: WebSocket, request: http.IncomingMessage) => {
-    const address = formatAddress(request.socket.address());
-    console.log(`Got connection from ${address}`);
+    const id = uuidv4();
+    console.log(`[${id}] New connection from ${formatAddress(request.socket.address())}`);
     socket.onmessage = this.onMessage;
     socket.onclose = this.onClose;
+    this.users.set(socket, id);
     this.sendState(socket);
   };
 
@@ -85,6 +84,12 @@ export default class ServerHandler {
         req,
       });
     } else {
+      const user = this.users.get(socket);
+      // TODO: validate user?
+      if (!user) {
+        this.closeSocketWithError(socket, new Error('invalid user'));
+        return;
+      }
       this.state = applyPatches(this.state, patches);
       this.vtag = uuidv4();
       this.send(socket, {
@@ -95,6 +100,7 @@ export default class ServerHandler {
       this.broadcast(socket, {
         type: MessageType.change,
         vtag: this.vtag,
+        user,
         patches,
       });
     }

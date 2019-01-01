@@ -53,5 +53,6 @@ export type AcceptMessage = {
 export type ChangeMessage = {
   type: MessageType.change;
   vtag: string;
+  user: string;
   patches: Patch[];
 };
