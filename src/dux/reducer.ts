@@ -64,8 +64,11 @@ export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
   )
   .add(
     setUserFocus,
-    patch((draft, { session, focus }) => {
-      ensureUser(draft, session).focus = focus;
+    patch((draft, { session, focus, selectStart, selectEnd }) => {
+      const user = ensureUser(draft, session);
+      user.focus = focus;
+      user.selectStart = selectStart;
+      user.selectEnd = selectEnd;
     }),
   )
   .build();

@@ -8,6 +8,8 @@ export interface ModelState {
 export interface User {
   username?: string;
   focus?: string;
+  selectStart?: number;
+  selectEnd?: number;
 }
 
 export interface Todo {

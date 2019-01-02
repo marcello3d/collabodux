@@ -18,6 +18,10 @@ export default function Focus({
   const proposeSetUserFocus = usePropose(collabodux, setUserFocus);
   const currentSession = useSession(collabodux);
   const sessionMap = useUserMap(collabodux);
+  const otherFocuses = Object.keys(sessionMap).filter(
+    (session) =>
+      session !== currentSession && sessionMap[session].focus === focusId,
+  );
   function onFocus() {
     if (currentSession) {
       proposeSetUserFocus({
@@ -28,20 +32,12 @@ export default function Focus({
   }
   function onBlur() {
     if (currentSession) {
-      proposeSetUserFocus({
-        session: currentSession,
-        focus: undefined,
-      });
+      // proposeSetUserFocus({
+      //   session: currentSession,
+      //   focus: undefined,
+      // });
     }
   }
-
-  const allFocuses = Object.keys(sessionMap).filter(
-    (session) => sessionMap[session].focus === focusId,
-  );
-
-  const otherFocuses = allFocuses.filter(
-    (session) => session !== currentSession,
-  );
   const boxShadow = otherFocuses
     .map(
       (session, index) =>

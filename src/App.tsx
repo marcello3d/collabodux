@@ -19,6 +19,7 @@ import { ModelState, User } from './dux/model';
 import { collabodux } from './dux/connection';
 import { useUserMap } from './dux/use-user-map';
 import Focus from './components/Focus';
+import FocusInput from './components/FocusInput';
 
 export function App() {
   const proposeSetTitle = usePropose(collabodux, setTitle);
@@ -51,7 +52,11 @@ export function App() {
         <input
           type="text"
           disabled={!currentSession}
-          value={currentSession ? userMap[currentSession].username : ''}
+          value={
+            currentSession && userMap[currentSession]
+              ? userMap[currentSession].username
+              : ''
+          }
           placeholder="Username…"
           onChange={
             currentSession
@@ -81,28 +86,25 @@ export function App() {
         <div>
           <label>
             Title:{' '}
-            <Focus focusId="title">
-              <input
-                value={title}
-                onChange={({ target }) =>
-                  proposeSetTitle({ title: target.value })
-                }
-              />
-            </Focus>
+            <FocusInput
+              focusId="title"
+              value={title}
+              onChange={({ target }) =>
+                proposeSetTitle({ title: target.value })
+              }
+            />
           </label>
         </div>
         <div>
           <label>
             Subtitle:{' '}
-            <Focus focusId="subtitle">
-              <input
-                value={subtitle}
-                data-focus-id="subtitle"
-                onChange={({ target }) =>
-                  proposeSetSubtitle({ subtitle: target.value })
-                }
-              />
-            </Focus>
+            <FocusInput
+              focusId="subtitle"
+              value={subtitle}
+              onChange={({ target }) =>
+                proposeSetSubtitle({ subtitle: target.value })
+              }
+            />
           </label>
         </div>
         <ul>
@@ -121,19 +123,18 @@ export function App() {
                   data-index={index}
                 />
               </Focus>{' '}
-              <Focus focusId={`todos/${index}/label`}>
-                <input
-                  type="text"
-                  value={todo.label}
-                  onChange={({ target }) =>
-                    proposeSetTodoLabel({
-                      index: Number(target.getAttribute('data-index')),
-                      label: target.value,
-                    })
-                  }
-                  data-index={index}
-                />
-              </Focus>
+              <FocusInput
+                focusId={`todos/${index}/label`}
+                type="text"
+                value={todo.label}
+                onChange={({ target }) =>
+                  proposeSetTodoLabel({
+                    index: Number(target.getAttribute('data-index')),
+                    label: target.value,
+                  })
+                }
+                data-index={index}
+              />
             </li>
           ))}
           <li>

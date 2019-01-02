@@ -29,5 +29,7 @@ export const setUserName = actionCreator<{
 
 export const setUserFocus = actionCreator<{
   session: string;
-  focus: string | undefined;
+  focus?: string;
+  selectStart?: number;
+  selectEnd?: number;
 }>('SET_USER_FOCUS');

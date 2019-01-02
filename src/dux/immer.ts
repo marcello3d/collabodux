@@ -17,6 +17,9 @@ export function patch<State, Payload>(
         finalPatches = patches;
       },
     );
+    if (finalPatches.length === 0) {
+      return undefined;
+    }
     return finalPatches;
   };
 }
