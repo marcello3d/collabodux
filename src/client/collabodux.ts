@@ -1,5 +1,10 @@
 import { Connection } from './ws';
-import { ChangeMessage, MessageType, StateMessage } from '../shared/messages';
+import {
+  ChangeMessage,
+  MessageType,
+  ResponseMessage,
+  StateMessage,
+} from '../shared/messages';
 
 interface PendingAction<Action, Patch> {
   action: Action;
@@ -21,6 +26,9 @@ export class Collabodux<State, ActionType, Patch> {
   private _localState: State;
 
   private subscribers = new Set<Subscriber<State>>();
+  private _sessions: string[] = [];
+  private _sessionSet = new Set<string>();
+  private _session: string | undefined = undefined;
 
   constructor(
     private connection: Connection<Patch>,
@@ -28,12 +36,19 @@ export class Collabodux<State, ActionType, Patch> {
     private applyPatch: PatchApplier<State, Patch>,
   ) {
     this._localState = {} as State;
-    this.connection.onChangeMessage = this.onChangeMessage;
-    this.connection.onStateMessage = this.onStateMessage;
+    this.connection.onResponseMessage = this.onResponseMessage;
   }
 
   get localState(): State {
     return this._localState;
+  }
+
+  get session(): string | undefined {
+    return this._session;
+  }
+
+  get sessions(): string[] {
+    return this._sessions;
   }
 
   subscribe(subscriber: Subscriber<State>): () => void {
@@ -63,20 +78,48 @@ export class Collabodux<State, ActionType, Patch> {
     }
   }
 
-  onStateMessage = ({ state = {}, vtag }: StateMessage): void => {
-    this.serverState = state;
-    this.vtag = vtag;
-    this.replayPendingActions();
+  onResponseMessage = (message: ResponseMessage<Patch>): void => {
+    switch (message.type) {
+      case MessageType.state:
+        this.onStateMessage(message);
+        break;
+
+      case MessageType.change:
+        this.onChangeMessage(message);
+        break;
+
+      case MessageType.join:
+        this._sessionSet.add(message.session);
+        this.updateSessionsArray();
+        break;
+
+      case MessageType.leave:
+        this._sessionSet.delete(message.session);
+        this.updateSessionsArray();
+        break;
+    }
     this.updateSubscribers();
   };
 
-  onChangeMessage = ({ patch, vtag }: ChangeMessage<Patch>): void => {
+  private onStateMessage({ state = {}, session, sessions, vtag }: StateMessage): void {
+    this.serverState = state;
+    this.vtag = vtag;
+    this._session = session;
+    this._sessionSet = new Set(sessions);
+    this.updateSessionsArray();
+    this.replayPendingActions();
+  }
+
+  private updateSessionsArray() {
+    this._sessions = Array.from(this._sessionSet).sort();
+  }
+
+  private onChangeMessage({ patch, vtag }: ChangeMessage<Patch>): void {
     this.serverState = this.applyPatch(this.serverState, patch);
     this.vtag = vtag;
     // TODO: we can look at patches and see if it conflicts with any patches in pendingActions to be smart about stuff
     this.replayPendingActions();
-    this.updateSubscribers();
-  };
+  }
 
   private replayPendingActions(): void {
     const { pendingActions } = this;

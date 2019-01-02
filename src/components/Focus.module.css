@@ -1,0 +1,23 @@
+.root {
+  position: relative;
+  display: inline-block;
+}
+.root > * {
+  display: block;
+}
+.tag {
+  padding: 2px;
+}
+.tagWrapper {
+  visibility: hidden;
+  position: absolute;
+  display: flex;
+  height: 20px;
+  top: -20px;
+  font-size: 80%;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.root:hover .tagWrapper {
+  visibility: visible;
+}

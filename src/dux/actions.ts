@@ -21,3 +21,13 @@ export const setTodoLabel = actionCreator<{
 }>('SET_TODO_LABEL');
 
 export const addTodo = actionCreator('ADD_TODO');
+
+export const setUserName = actionCreator<{
+  session: string;
+  username: string;
+}>('SET_USER_NAME');
+
+export const setUserFocus = actionCreator<{
+  session: string;
+  focus: string | undefined;
+}>('SET_USER_FOCUS');

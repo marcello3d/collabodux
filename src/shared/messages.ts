@@ -1,6 +1,8 @@
 export enum MessageType {
   error = 'error',
   state = 'state',
+  join = 'join',
+  leave = 'leave',
   reject = 'reject',
   accept = 'accept',
   change = 'change',
@@ -12,9 +14,17 @@ export type RequestMessage<Patch> = RequestChangeMessage<Patch> | GetStateMessag
 export type ResponseMessage<Patch> =
   | ErrorMessage
   | StateMessage
+  | JoinMessage
+  | LeaveMessage
   | RejectMessage
   | AcceptMessage
   | ChangeMessage<Patch>;
+
+export enum RejectCode {
+  outdated = 'outdated',
+  permission = 'permission',
+  internal = 'internal',
+}
 
 export type RequestChangeMessage<Patch> = {
   type: MessageType.change;
@@ -35,11 +45,25 @@ export type StateMessage = {
   type: MessageType.state;
   vtag: string;
   state: any;
+  session: string;
+  sessions: string[];
+};
+
+export type JoinMessage = {
+  type: MessageType.join;
+  session: string;
+};
+
+export type LeaveMessage = {
+  type: MessageType.leave;
+  session: string;
 };
 
 export type RejectMessage = {
   type: MessageType.reject;
   req: string;
+  code: RejectCode;
+  reason?: string;
 };
 
 export type AcceptMessage = {

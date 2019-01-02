@@ -3,12 +3,12 @@ import {
   setSubtitle,
   setTitle,
   setTodoDone,
-  setTodoLabel,
+  setTodoLabel, setUserFocus, setUserName,
 } from './actions';
 import { patch } from './immer';
 import { fsaReducerBuilder } from './fsa-reducer-builder';
-import { ModelState, Todo } from './model';
-import { applyPatches, Patch } from 'immer';
+import { ModelState, Todo, User } from './model';
+import { applyPatches, Draft, Patch } from 'immer';
 
 export const applyPatch = (state: ModelState, patch: Patch[]) =>
   applyPatches(state, patch);
@@ -56,4 +56,26 @@ export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
       }
     }),
   )
+  .add(
+    setUserName,
+    patch((draft, { session, username }) => {
+      ensureUser(draft, session).username = username;
+    }),
+  )
+  .add(
+    setUserFocus,
+    patch((draft, { session, focus }) => {
+      ensureUser(draft, session).focus = focus;
+    }),
+  )
   .build();
+
+function ensureUser(draft: Draft<ModelState>, session: string): User {
+  if (!draft.users) {
+    draft.users = {};
+  }
+  if (!draft.users[session]) {
+    draft.users[session] = {};
+  }
+  return draft.users[session];
+}

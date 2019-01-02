@@ -1,11 +1,9 @@
 import {
   AcceptMessage,
-  ChangeMessage,
   MessageType,
   RejectMessage,
   RequestMessage,
   ResponseMessage,
-  StateMessage,
 } from '../shared/messages';
 
 type Responder = {
@@ -18,8 +16,7 @@ export class Connection<Patch> {
     ws.onclose = this.onClose;
     ws.onerror = this.onError;
   }
-  public onStateMessage?: (message: StateMessage) => void;
-  public onChangeMessage?: (message: ChangeMessage<Patch>) => void;
+  public onResponseMessage?: (message: ResponseMessage<Patch>) => void;
 
   private promises = new Map<string, Responder>();
   private nextRequestId: number = 1;
@@ -50,13 +47,11 @@ export class Connection<Patch> {
     console.log('got message', message);
     switch (message.type) {
       case MessageType.state:
-        if (this.onStateMessage) {
-          this.onStateMessage(message);
-        }
-        break;
       case MessageType.change:
-        if (this.onChangeMessage) {
-          this.onChangeMessage(message);
+      case MessageType.join:
+      case MessageType.leave:
+        if (this.onResponseMessage) {
+          this.onResponseMessage(message);
         }
         break;
 
