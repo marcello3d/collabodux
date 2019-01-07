@@ -22,20 +22,22 @@ export class Connection<Patch> {
   private nextRequestId: number = 1;
 
   send(message: RequestMessage<Patch>) {
-    console.log('sending message', message);
-    this.ws.send(JSON.stringify(message));
+    const json = JSON.stringify(message);
+    console.log('client --> ' + json);
+    this.ws.send(json);
   }
 
   requestChange(
     vtag: string,
-    patch: Patch,
+    patches: Patch[],
   ): Promise<AcceptMessage | RejectMessage> {
-    const req = (this.nextRequestId++).toString(36);
+    this.nextRequestId += 1;
+    const req = this.nextRequestId.toString(36);
     this.send({
       type: MessageType.change,
       req,
       vtag,
-      patch,
+      patches,
     });
     return new Promise<AcceptMessage | RejectMessage>((resolve, reject) => {
       this.promises.set(req, { resolve, reject });
@@ -44,7 +46,7 @@ export class Connection<Patch> {
 
   private onMessage = (event: MessageEvent) => {
     const message = JSON.parse(event.data) as ResponseMessage<Patch>;
-    console.log('got message', message);
+    console.log('client <-- ' + event.data);
     switch (message.type) {
       case MessageType.state:
       case MessageType.change:
@@ -59,8 +61,8 @@ export class Connection<Patch> {
       case MessageType.reject:
         const promise = this.promises.get(message.req);
         if (promise) {
-          promise.resolve(message);
           this.promises.delete(message.req);
+          promise.resolve(message);
         }
         break;
     }

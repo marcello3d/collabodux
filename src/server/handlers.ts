@@ -1,7 +1,14 @@
 import WebSocket, { Server } from 'ws';
 import uuidv4 from 'uuid/v4';
+import chalk from 'chalk';
 
-import { MessageType, RejectCode, RequestChangeMessage, RequestMessage, ResponseMessage } from '../shared/messages';
+import {
+  MessageType,
+  RejectCode,
+  RequestChangeMessage,
+  RequestMessage,
+  ResponseMessage,
+} from '../shared/messages';
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
 
@@ -12,7 +19,7 @@ export default class ServerHandler<Patch> {
 
   constructor(
     private wss: Server,
-    private applyPatch: (state: any, patch: Patch, user: string) => any,
+    private applyPatches: (state: any, patches: Patch[], user: string) => any,
   ) {}
 
   onMessage = ({ data, type, target }: WSMessageEvent) => {
@@ -20,7 +27,18 @@ export default class ServerHandler<Patch> {
       if (typeof data !== 'string') {
         throw new Error('unexpected data type');
       }
-      this.handleMessage(target, JSON.parse(data) as RequestMessage<Patch>);
+      const session = this.sessions.get(target);
+      // TODO: validate session?
+      if (!session) {
+        this.closeSocketWithError(target, new Error('invalid session'));
+        return;
+      }
+      console.log(
+        `${chalk.gray(`[${session}]`)} ${chalk.magenta(`--> ${data}`)}`,
+      );
+      this.handleMessage(target, session, JSON.parse(data) as RequestMessage<
+        Patch
+      >);
     } catch (e) {
       this.closeSocketWithError(target, e);
     }
@@ -30,7 +48,9 @@ export default class ServerHandler<Patch> {
     // TODO: multiple documents by using request.url
     const session = uuidv4();
     console.log(
-      `[${session}] New connection from ${formatAddress(request.socket.address())}`,
+      `${chalk.gray(`[${session}]`)} ${chalk.green(
+        `New connection from ${formatAddress(request.socket.address())}`,
+      )}`,
     );
     socket.onmessage = this.onMessage;
     socket.onclose = this.onClose;
@@ -39,7 +59,7 @@ export default class ServerHandler<Patch> {
     this.broadcast(socket, {
       type: MessageType.join,
       session,
-    })
+    });
   };
 
   onClose = (event: WSCloseEvent) => {
@@ -48,16 +68,25 @@ export default class ServerHandler<Patch> {
       throw new Error('unexpected connection closed');
     }
     this.sessions.delete(event.target);
-    console.log(`[${session}] Connection lost`);
+    console.log(
+      `${chalk.gray(`[${session}]`)} ${chalk.red('Connection lost')}`,
+    );
     this.broadcast(event.target, {
       type: MessageType.leave,
       session,
     });
   };
 
-  send(socket: WebSocket, response: ResponseMessage<Patch>) {
+  send(socket: WebSocket, response: ResponseMessage<Patch> | string) {
     try {
-      socket.send(JSON.stringify(response));
+      const session = this.sessions.get(socket);
+      if (!session) {
+        throw new Error('Invalid socket');
+      }
+      const json =
+        typeof response === 'string' ? response : JSON.stringify(response);
+      console.log(`${chalk.gray(`[${session}]`)} ${chalk.blue(`<-- ${json}`)}`);
+      socket.send(json);
     } catch (ex) {
       console.error('error sending', ex);
     }
@@ -67,18 +96,16 @@ export default class ServerHandler<Patch> {
     const message = JSON.stringify(response);
     this.wss.clients.forEach((client) => {
       if (client !== skipSocket) {
-        client.send(message);
+        this.send(client, message);
       }
     });
   }
 
-  handleMessage(socket: WebSocket, request: RequestMessage<Patch>) {
-    const session = this.sessions.get(socket);
-    // TODO: validate session?
-    if (!session) {
-      this.closeSocketWithError(socket, new Error('invalid session'));
-      return;
-    }
+  handleMessage(
+    socket: WebSocket,
+    session: string,
+    request: RequestMessage<Patch>,
+  ) {
     switch (request.type) {
       case MessageType.change:
         return this.handleRequestChange(socket, session, request);
@@ -105,7 +132,7 @@ export default class ServerHandler<Patch> {
   private handleRequestChange(
     socket: WebSocket,
     user: string,
-    { req, vtag, patch }: RequestChangeMessage<Patch>,
+    { req, vtag, patches }: RequestChangeMessage<Patch>,
   ) {
     if (vtag !== this.vtag) {
       this.send(socket, {
@@ -115,7 +142,16 @@ export default class ServerHandler<Patch> {
       });
     } else {
       try {
-        this.state = this.applyPatch(this.state, patch, user);
+        try {
+          this.state = this.applyPatches(this.state, patches, user);
+        } catch (e) {
+          this.send(socket, {
+            type: MessageType.reject,
+            req,
+            code: RejectCode.badRequest,
+            reason: e.toString(),
+          });
+        }
         this.vtag = uuidv4();
         this.send(socket, {
           type: MessageType.accept,
@@ -126,7 +162,7 @@ export default class ServerHandler<Patch> {
           type: MessageType.change,
           vtag: this.vtag,
           user,
-          patch,
+          patches,
         });
       } catch (e) {
         if (e.code === RejectCode.permission) {

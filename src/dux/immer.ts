@@ -1,4 +1,4 @@
-import produce, { Draft, Patch } from 'immer';
+import produce, { Draft, Patch, applyPatches } from 'immer';
 import { Action } from 'typescript-fsa';
 
 export function patch<State, Payload>(
@@ -8,18 +8,26 @@ export function patch<State, Payload>(
     action: Action<Payload>,
   ) => void,
 ) {
-  return (state: State, action: Action<Payload>) => {
+  return (state: State, payload: Payload, action: Action<Payload>): Patch[] => {
     let finalPatches: Patch[] = [];
     produce(
       state,
-      (draft) => recipe(draft, action.payload, action),
+      (draft) => recipe(draft, payload, action),
       (patches) => {
         finalPatches = patches;
       },
     );
-    if (finalPatches.length === 0) {
-      return undefined;
-    }
     return finalPatches;
   };
+}
+
+export function compressPatches<S>(state0: S, patches: Patch[]) {
+  produce(
+    state0,
+    (draft) => applyPatches(draft, patches),
+    (flatPatches) => {
+      patches = flatPatches;
+    },
+  );
+  return patches;
 }

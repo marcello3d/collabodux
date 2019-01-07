@@ -1,25 +1,47 @@
 import { Connection } from '../client/ws';
-import { Patch } from 'immer';
+import { applyPatches, Patch } from 'immer';
 import { Collabodux } from '../client/collabodux';
-import { applyPatch, reducer } from './reducer';
-import { setUserName } from './actions';
+import { reducer } from './reducer';
+import { loadState, removeUsers, setUserName } from './actions';
 import { randomAnimalName } from '../utils/names';
+import { compressPatches } from './immer';
 
-export const connection = new Connection<Patch[]>(
+export const connection = new Connection<Patch>(
   new WebSocket('ws://localhost:4000'),
 );
 
-export const collabodux = new Collabodux(connection, reducer, applyPatch);
+export const collabodux = new Collabodux(
+  connection,
+  (newState) => loadState({ newState }),
+  reducer,
+  applyPatches,
+  compressPatches,
+);
 
 let session: string | undefined = undefined;
-collabodux.subscribe(() => {
+let sessions: string[] | undefined = undefined;
+collabodux.subscribe((state) => {
+  if (collabodux.sessions !== sessions) {
+    sessions = collabodux.sessions;
+    if (sessions) {
+      const sessionSet = new Set(sessions);
+      const obsoleteUsers = Object.keys(state.users).filter(
+        (session) => !sessionSet.has(session),
+      );
+      if (obsoleteUsers.length > 0) {
+        collabodux.propose(removeUsers({ users: obsoleteUsers }));
+      }
+    }
+  }
   if (collabodux.session !== session) {
     session = collabodux.session;
     if (session) {
-      collabodux.propose(setUserName({
-        session,
-        username: randomAnimalName(),
-      }))
+      collabodux.propose(
+        setUserName({
+          session,
+          username: randomAnimalName(),
+        }),
+      );
     }
   }
 });

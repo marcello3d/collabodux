@@ -2,6 +2,10 @@ import actionCreatorFactory from 'typescript-fsa';
 
 const actionCreator = actionCreatorFactory();
 
+export const loadState = actionCreator<{
+  newState: any;
+}>('LOAD_STATE');
+
 export const setTitle = actionCreator<{
   title: string;
 }>('SET_TITLE');
@@ -22,6 +26,10 @@ export const setTodoLabel = actionCreator<{
 
 export const addTodo = actionCreator('ADD_TODO');
 
+export const removeUsers = actionCreator<{
+  users: string[];
+}>('REMOVE_USERS');
+
 export const setUserName = actionCreator<{
   session: string;
   username: string;
@@ -30,6 +38,5 @@ export const setUserName = actionCreator<{
 export const setUserFocus = actionCreator<{
   session: string;
   focus?: string;
-  selectStart?: number;
-  selectEnd?: number;
+  select?: [number, number];
 }>('SET_USER_FOCUS');

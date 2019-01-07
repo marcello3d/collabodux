@@ -20,24 +20,20 @@ export default function FocusInput({
   const currentSession = useSession(collabodux);
   const sessionMap = useUserMap(collabodux);
   const otherFocuses = Object.keys(sessionMap).filter((session) => {
-    const { focus, selectStart, selectEnd } = sessionMap[session];
-    return (
-      session !== currentSession &&
-      focus === focusId &&
-      selectStart !== undefined &&
-      selectEnd !== undefined
-    );
+    const { focus, select } = sessionMap[session];
+    return session !== currentSession && focus === focusId && select;
   });
   const inputRef = useRef<HTMLInputElement | null>(null);
   function onFocus() {
     if (currentSession && inputRef.current) {
       const { selectionStart, selectionEnd } = inputRef.current;
-      console.log(selectionStart, selectionEnd);
       proposeSetUserFocus({
         session: currentSession,
         focus: focusId,
-        selectStart: selectionStart === null ? undefined : selectionStart,
-        selectEnd: selectionEnd === null ? undefined : selectionEnd,
+        select:
+          selectionStart === null || selectionEnd === null
+            ? undefined
+            : [selectionStart, selectionEnd],
       });
     }
   }
@@ -54,22 +50,19 @@ export default function FocusInput({
       (session, index) =>
         `0 0 0 ${2 * (1 + index)}px ${
           toMaterialStyle(session, 500).backgroundColor
-          }`,
+        }`,
     )
     .join(',');
   otherFocuses.reverse();
   return (
-    <span
-      className={styles.root}
-      style={{ boxShadow }}
-    >
+    <span className={styles.root} style={{ boxShadow }}>
       {otherFocuses.length > 0 && (
         <span
           className={styles.tagWrapper}
           style={{ left: `${-2 * otherFocuses.length}px` }}
         >
           {otherFocuses.map((session) => {
-            const { username = 'Unknown' } = sessionMap[session];
+            const { username } = sessionMap[session];
             const { color, backgroundColor } = toMaterialStyle(session, 500);
             return (
               <span
@@ -84,15 +77,18 @@ export default function FocusInput({
         </span>
       )}
       {otherFocuses.map((session) => {
-        const { selectStart, selectEnd } = sessionMap[session];
+        const { select } = sessionMap[session];
         if (!inputRef.current) {
+          // TODO: recompute once inputRef is available
           return;
         }
-        const startCaret = getCaretCoordinates(inputRef.current, selectStart!);
-        const endCaret = getCaretCoordinates(inputRef.current, selectEnd!);
+        const [selectStart, selectEnd] = select!; // we filtered out falsy selects earlier
+        const startCaret = getCaretCoordinates(inputRef.current, selectStart);
+        const endCaret = getCaretCoordinates(inputRef.current, selectEnd);
         const { backgroundColor } = toMaterialStyle(session, 500);
         return (
           <div
+            key={session}
             style={{
               position: 'absolute',
               backgroundColor,

@@ -1,13 +1,13 @@
 import { useMappedLocalState, useSessions } from '../client/collabodux-hooks';
-import { ModelState, User } from './model';
+import { IModelState, IUser } from './model';
 import { Collabodux } from '../client/collabodux';
 
 export function useUserMap<Action, Patch>(
-  collabodux: Collabodux<ModelState, Action, Patch>,
-): Record<string, User> {
+  collabodux: Collabodux<IModelState, Action, Patch>,
+): Record<string, IUser> {
   const sessions = useSessions(collabodux);
-  const users = useMappedLocalState(collabodux, ({ users = {} }) => users);
-  const map: Record<string, User> = {};
+  const users = useMappedLocalState(collabodux, ({ users }) => users);
+  const map: Record<string, IUser> = {};
   for (const session of sessions) {
     map[session] = users[session] || {};
   }

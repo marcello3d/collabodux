@@ -1,19 +1,22 @@
 import {
   addTodo,
+  loadState,
+  removeUsers,
   setSubtitle,
   setTitle,
   setTodoDone,
-  setTodoLabel, setUserFocus, setUserName,
+  setTodoLabel,
+  setUserFocus,
+  setUserName,
 } from './actions';
 import { patch } from './immer';
 import { fsaReducerBuilder } from './fsa-reducer-builder';
-import { ModelState, Todo, User } from './model';
+import { IModelState, ITodo, IUser, validateAndAddDefaults } from './model';
 import { applyPatches, Draft, Patch } from 'immer';
+import shallowequal from 'shallowequal';
 
-export const applyPatch = (state: ModelState, patch: Patch[]) =>
-  applyPatches(state, patch);
-
-export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
+export const reducer = fsaReducerBuilder<IModelState, Patch>()
+  .add(loadState, (state, { newState }) => validateAndAddDefaults(newState))
   .add(
     setTitle,
     patch((draft, { title }) => {
@@ -29,7 +32,7 @@ export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
   .add(
     addTodo,
     patch((draft) => {
-      const todo: Todo = {
+      const todo: ITodo = {
         label: '',
         done: false,
       };
@@ -57,6 +60,14 @@ export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
     }),
   )
   .add(
+    removeUsers,
+    patch((draft, { users }) => {
+      users.forEach((user) => {
+        delete draft.users[user];
+      });
+    }),
+  )
+  .add(
     setUserName,
     patch((draft, { session, username }) => {
       ensureUser(draft, session).username = username;
@@ -64,21 +75,23 @@ export const reducer = fsaReducerBuilder<ModelState, Patch[]>()
   )
   .add(
     setUserFocus,
-    patch((draft, { session, focus, selectStart, selectEnd }) => {
+    patch((draft, { session, focus, select }) => {
       const user = ensureUser(draft, session);
       user.focus = focus;
-      user.selectStart = selectStart;
-      user.selectEnd = selectEnd;
+      if (!shallowequal(user.select, select)) {
+        user.select = select;
+      }
     }),
   )
   .build();
 
-function ensureUser(draft: Draft<ModelState>, session: string): User {
-  if (!draft.users) {
-    draft.users = {};
-  }
+function ensureUser(draft: Draft<IModelState>, session: string): Draft<IUser> {
   if (!draft.users[session]) {
-    draft.users[session] = {};
+    draft.users[session] = {
+      username: '',
+      focus: undefined,
+      select: undefined,
+    };
   }
   return draft.users[session];
 }

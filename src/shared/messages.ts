@@ -9,7 +9,9 @@ export enum MessageType {
   getState = 'getState',
 }
 
-export type RequestMessage<Patch> = RequestChangeMessage<Patch> | GetStateMessage;
+export type RequestMessage<Patch> =
+  | RequestChangeMessage<Patch>
+  | GetStateMessage;
 
 export type ResponseMessage<Patch> =
   | ErrorMessage
@@ -22,6 +24,7 @@ export type ResponseMessage<Patch> =
 
 export enum RejectCode {
   outdated = 'outdated',
+  badRequest = 'badRequest',
   permission = 'permission',
   internal = 'internal',
 }
@@ -30,7 +33,7 @@ export type RequestChangeMessage<Patch> = {
   type: MessageType.change;
   req: string;
   vtag: string;
-  patch: Patch;
+  patches: Patch[];
 };
 export type GetStateMessage = {
   type: MessageType.getState;
@@ -76,5 +79,5 @@ export type ChangeMessage<Patch> = {
   type: MessageType.change;
   vtag: string;
   user: string;
-  patch: Patch;
+  patches: Patch[];
 };

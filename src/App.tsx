@@ -1,21 +1,15 @@
 import React from 'react';
 import styles from './App.module.css';
-import {
-  useMappedLocalState,
-  useSession,
-  useSessions,
-} from './client/collabodux-hooks';
+import { useMappedLocalState, useSession } from './client/collabodux-hooks';
 import {
   addTodo,
   setSubtitle,
   setTitle,
   setTodoDone,
   setTodoLabel,
-  setUserFocus,
   setUserName,
 } from './dux/actions';
 import { usePropose } from './client/collabodux-fsa-hooks';
-import { ModelState, User } from './dux/model';
 import { collabodux } from './dux/connection';
 import { useUserMap } from './dux/use-user-map';
 import Focus from './components/Focus';
@@ -32,13 +26,8 @@ export function App() {
   const currentSession = useSession(collabodux);
   const { title, subtitle, todos } = useMappedLocalState(
     collabodux,
-    (state: ModelState) => {
-      const { title = '', subtitle = '', todos = [], users = {} } = state;
-      return {
-        title,
-        subtitle,
-        todos,
-      };
+    ({ title, subtitle, todos }) => {
+      return { title, subtitle, todos };
     },
   );
   const userMap = useUserMap(collabodux);
@@ -73,7 +62,7 @@ export function App() {
             if (session === currentSession) {
               return;
             }
-            const { username = '' } = userMap[session];
+            const { username } = userMap[session];
             return (
               <li key={session}>
                 <Focus focusId={`users/${session}/username`}>{username}</Focus>
