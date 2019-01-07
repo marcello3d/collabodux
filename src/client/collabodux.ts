@@ -99,12 +99,6 @@ export class Collabodux<State, Action, Patch> {
     if (patches.length === 0) {
       return false;
     }
-    console.log(
-      'propose actions',
-      this.pendingActions,
-      'server state',
-      this.serverState !== undefined,
-    );
     this._localState = this.applyPatches(state, patches);
     this.pendingActions.push(action);
     this.pendingPatches.push(...patches);
