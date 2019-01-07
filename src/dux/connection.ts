@@ -7,7 +7,7 @@ import { randomAnimalName } from '../utils/names';
 import { compressPatches } from './immer';
 
 export const connection = new Connection<Patch>(
-  new WebSocket('ws://localhost:4000'),
+  new WebSocket(`ws://${location.hostname}:4000`),
 );
 
 export const collabodux = new Collabodux(
