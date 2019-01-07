@@ -76,7 +76,7 @@ export function App() {
         </ul>
       </nav>
       <main>
-        <div>
+        <p>
           <label>
             Title:{' '}
             <FocusInput
@@ -87,8 +87,8 @@ export function App() {
               }
             />
           </label>
-        </div>
-        <div>
+        </p>
+        <p>
           <label>
             Subtitle:{' '}
             <FocusInput
@@ -102,8 +102,8 @@ export function App() {
               }
             />
           </label>
-        </div>
-        <div>
+        </p>
+        <p>
           <label htmlFor="longtext">Long Text:</label>
           <div>
             <FocusTextarea
@@ -120,45 +120,47 @@ export function App() {
               }
             />
           </div>
-        </div>
-        <ul>
-          {todos.map((todo, index) => (
-            <li key={index}>
-              <Focus focusId={`todos/${index}/done`}>
-                <input
-                  type="checkbox"
-                  checked={todo.done}
+        </p>
+        <p>
+          Todo list:
+          <ul>
+            {todos.map((todo, index) => (
+              <li key={index}>
+                <Focus focusId={`todos/${index}/done`}>
+                  <input
+                    type="checkbox"
+                    checked={todo.done}
+                    onChange={({ target }) =>
+                      proposeSetTodoDone({
+                        index: Number(target.getAttribute('data-index')),
+                        done: target.checked,
+                      })
+                    }
+                    data-index={index}
+                  />
+                </Focus>{' '}
+                <FocusInput
+                  focusId={`todos/${index}/label`}
+                  type="text"
+                  value={todo.label}
                   onChange={({ target }) =>
-                    proposeSetTodoDone({
+                    proposeSetTodoLabel({
                       index: Number(target.getAttribute('data-index')),
-                      done: target.checked,
+                      priorLabel: todo.label,
+                      label: target.value,
                     })
                   }
                   data-index={index}
                 />
-              </Focus>{' '}
-              <FocusInput
-                focusId={`todos/${index}/label`}
-                type="text"
-                value={todo.label}
-                onChange={({ target }) =>
-                  proposeSetTodoLabel({
-                    index: Number(target.getAttribute('data-index')),
-                    priorLabel: todo.label,
-                    label: target.value,
-                  })
-                }
-                data-index={index}
-              />
+              </li>
+            ))}
+            <li>
+              <Focus focusId="todos/add">
+                <button onClick={() => proposeAddTodo()}>Add…</button>
+              </Focus>
             </li>
-          ))}
-          <li>
-            <Focus focusId="todos/add">
-              <button onClick={() => proposeAddTodo()}>Add…</button>
-            </Focus>
-          </li>
-        </ul>
-        ;
+          </ul>
+        </p>
       </main>
     </div>
   );
