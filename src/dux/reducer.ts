@@ -1,7 +1,7 @@
 import {
   addTodo,
   loadState,
-  removeUsers,
+  removeUsers, setLongText,
   setSubtitle,
   setTitle,
   setTodoDone,
@@ -14,19 +14,26 @@ import { fsaReducerBuilder } from './fsa-reducer-builder';
 import { IModelState, ITodo, IUser, validateAndAddDefaults } from './model';
 import { applyPatches, Draft, Patch } from 'immer';
 import shallowequal from 'shallowequal';
+import { mergeTwoStringEdits } from '../utils/merge-edits';
 
 export const reducer = fsaReducerBuilder<IModelState, Patch>()
   .add(loadState, (state, { newState }) => validateAndAddDefaults(newState))
   .add(
     setTitle,
-    patch((draft, { title }) => {
-      draft.title = title;
+    patch((draft, { priorTitle, title }) => {
+      draft.title = mergeTwoStringEdits(priorTitle, draft.title, title);
     }),
   )
   .add(
     setSubtitle,
-    patch((draft, { subtitle }) => {
-      draft.subtitle = subtitle;
+    patch((draft, { priorSubtitle, subtitle }) => {
+      draft.subtitle = mergeTwoStringEdits(priorSubtitle, draft.subtitle, subtitle);
+    }),
+  )
+  .add(
+    setLongText,
+    patch((draft, { priorText, text }) => {
+      draft.longtext = mergeTwoStringEdits(priorText, draft.longtext, text);
     }),
   )
   .add(
@@ -45,9 +52,9 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     setTodoLabel,
-    patch((draft, { index, label }) => {
+    patch((draft, { index, priorLabel, label }) => {
       if (draft.todos && draft.todos[index]) {
-        draft.todos[index].label = label;
+        draft.todos[index].label = mergeTwoStringEdits(priorLabel, draft.todos[index].label, label);
       }
     }),
   )
@@ -69,8 +76,9 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     setUserName,
-    patch((draft, { session, username }) => {
-      ensureUser(draft, session).username = username;
+    patch((draft, { session, priorUsername, username }) => {
+      const user = ensureUser(draft, session);
+      user.username = mergeTwoStringEdits(priorUsername, user.username, username);
     }),
   )
   .add(

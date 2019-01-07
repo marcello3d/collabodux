@@ -7,7 +7,8 @@ import { randomAnimalName } from '../utils/names';
 import { compressPatches } from './immer';
 
 export const connection = new Connection<Patch>(
-  new WebSocket(`ws://${location.hostname}:4000`),
+  // new WebSocket(`ws://${location.hostname}:4000`),
+  new WebSocket(`wss://collabodux1.now.sh:443`),
 );
 
 export const collabodux = new Collabodux(
@@ -39,6 +40,7 @@ collabodux.subscribe((state) => {
       collabodux.propose(
         setUserName({
           session,
+          priorUsername: '',
           username: randomAnimalName(),
         }),
       );

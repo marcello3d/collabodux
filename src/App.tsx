@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './App.module.css';
 import { useMappedLocalState, useSession } from './client/collabodux-hooks';
 import {
-  addTodo,
+  addTodo, setLongText,
   setSubtitle,
   setTitle,
   setTodoDone,
@@ -18,20 +18,25 @@ import FocusInput from './components/FocusInput';
 export function App() {
   const proposeSetTitle = usePropose(collabodux, setTitle);
   const proposeSetSubtitle = usePropose(collabodux, setSubtitle);
+  const proposeSetLongText = usePropose(collabodux, setLongText);
   const proposeSetTodoDone = usePropose(collabodux, setTodoDone);
   const proposeSetTodoLabel = usePropose(collabodux, setTodoLabel);
   const proposeAddTodo = usePropose(collabodux, addTodo);
   const proposeSetUserName = usePropose(collabodux, setUserName);
 
   const currentSession = useSession(collabodux);
-  const { title, subtitle, todos } = useMappedLocalState(
+  const { title, subtitle, longtext, todos } = useMappedLocalState(
     collabodux,
-    ({ title, subtitle, todos }) => {
-      return { title, subtitle, todos };
+    ({ title, subtitle, longtext, todos }) => {
+      return { title, subtitle, longtext, todos };
     },
   );
   const userMap = useUserMap(collabodux);
 
+  const currentUsername =
+    currentSession && userMap[currentSession]
+      ? userMap[currentSession].username
+      : '';
   return (
     <div className={styles.root}>
       <header className={styles.head}>
@@ -41,11 +46,7 @@ export function App() {
         <input
           type="text"
           disabled={!currentSession}
-          value={
-            currentSession && userMap[currentSession]
-              ? userMap[currentSession].username
-              : ''
-          }
+          value={currentUsername}
           placeholder="Username…"
           onChange={
             currentSession
@@ -53,6 +54,7 @@ export function App() {
                   proposeSetUserName({
                     session: currentSession,
                     username: target.value,
+                    priorUsername: currentUsername,
                   })
               : undefined
           }
@@ -79,7 +81,7 @@ export function App() {
               focusId="title"
               value={title}
               onChange={({ target }) =>
-                proposeSetTitle({ title: target.value })
+                proposeSetTitle({ priorTitle: title, title: target.value })
               }
             />
           </label>
@@ -91,10 +93,34 @@ export function App() {
               focusId="subtitle"
               value={subtitle}
               onChange={({ target }) =>
-                proposeSetSubtitle({ subtitle: target.value })
+                proposeSetSubtitle({
+                  priorSubtitle: subtitle,
+                  subtitle: target.value,
+                })
               }
             />
           </label>
+        </div>
+        <div>
+          <label htmlFor="longtext">
+            Long Text:
+          </label>
+          <div>
+            <Focus focusId="longtext">
+              <textarea
+                id="longtext"
+                value={longtext}
+                cols={80}
+                rows={20}
+                onChange={({ target }) =>
+                  proposeSetLongText({
+                    priorText: longtext,
+                    text: target.value,
+                  })
+                }
+                />
+            </Focus>
+          </div>
         </div>
         <ul>
           {todos.map((todo, index) => (
@@ -119,6 +145,7 @@ export function App() {
                 onChange={({ target }) =>
                   proposeSetTodoLabel({
                     index: Number(target.getAttribute('data-index')),
+                    priorLabel: todo.label,
                     label: target.value,
                   })
                 }

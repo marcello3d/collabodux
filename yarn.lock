@@ -6503,6 +6503,11 @@ no-case@^2.2.0:
   dependencies:
     lower-case "^1.1.1"
 
+node-diff3@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/node-diff3/-/node-diff3-1.0.0.tgz#1b27c6407f37884aba50044a07635ad7447e5244"
+  integrity sha1-GyfGQH83iEq6UARKB2Na10R+UkQ=
+
 node-emoji@^1.4.1:
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/node-emoji/-/node-emoji-1.8.1.tgz#6eec6bfb07421e2148c75c6bba72421f8530a826"

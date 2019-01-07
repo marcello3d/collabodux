@@ -8,6 +8,7 @@
     "immer": "1.9.3",
     "io-ts": "1.5.1",
     "material-color-hash": "0.1.6",
+    "node-diff3": "1.0.0",
     "react": "16.7.0-alpha.2",
     "react-dom": "16.7.0-alpha.2",
     "react-scripts": "2.1.2",
@@ -24,6 +25,7 @@
   "scripts": {
     "start": "react-scripts start",
     "start-server": "ts-node-dev -O '{\"module\": \"commonjs\"}' src/server.ts",
+    "now-start": "ts-node -O '{\"module\": \"commonjs\"}' src/server.ts",
     "build": "GENERATE_SOURCEMAP=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

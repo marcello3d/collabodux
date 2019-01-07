@@ -7,12 +7,19 @@ export const loadState = actionCreator<{
 }>('LOAD_STATE');
 
 export const setTitle = actionCreator<{
+  priorTitle: string;
   title: string;
 }>('SET_TITLE');
 
 export const setSubtitle = actionCreator<{
+  priorSubtitle: string;
   subtitle: string;
 }>('SET_SUBTITLE');
+
+export const setLongText = actionCreator<{
+  priorText: string;
+  text: string;
+}>('SET_LONG_TEXT');
 
 export const setTodoDone = actionCreator<{
   index: number;
@@ -21,6 +28,7 @@ export const setTodoDone = actionCreator<{
 
 export const setTodoLabel = actionCreator<{
   index: number;
+  priorLabel: string;
   label: string;
 }>('SET_TODO_LABEL');
 
@@ -32,6 +40,7 @@ export const removeUsers = actionCreator<{
 
 export const setUserName = actionCreator<{
   session: string;
+  priorUsername: string;
   username: string;
 }>('SET_USER_NAME');
 

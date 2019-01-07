@@ -27,6 +27,7 @@ export const ModelState = t.type(
   {
     title: defaulted(t.string, ''),
     subtitle: defaulted(t.string, ''),
+    longtext: defaulted(t.string, ''),
     todos: defaulted(t.array(Todo), []),
     users: defaulted(t.dictionary(t.string, User), {}),
   },

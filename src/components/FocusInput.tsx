@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { ReactHTML, useRef } from 'react';
 import getCaretCoordinates from 'textarea-caret';
 
 import { useSession } from '../client/collabodux-hooks';
@@ -12,9 +12,11 @@ import styles from './Focus.module.css';
 
 export default function FocusInput({
   focusId,
+  textarea = false,
   ...rest
 }: {
   focusId: string;
+  textarea?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const proposeSetUserFocus = usePropose(collabodux, setUserFocus);
   const currentSession = useSession(collabodux);
