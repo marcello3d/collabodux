@@ -6,10 +6,6 @@ import {
   StateMessage,
 } from '../shared/messages';
 
-interface PendingAction<Action, Patch> {
-  action: Action;
-  patches: Patch[];
-}
 export type PatchReducer<State, Action, Patch> = (
   state: State,
   action: Action,
@@ -163,11 +159,11 @@ export class Collabodux<State, Action, Patch> {
     this.pendingActions = [];
     this.pendingPatches = [];
     if (reloadState) {
-      this.propose(this.loadStateAction(this.serverState));
+      this._propose(this.loadStateAction(this.serverState));
     }
     pendingActions.forEach((action) => {
       try {
-        this.propose(action);
+        this._propose(action);
       } catch (e) {
         console.warn(
           `Dropped action ${action}, it could not be applied anymore: ${e}`,
