@@ -9,18 +9,19 @@ import { useUserMap } from '../dux/use-user-map';
 import toMaterialStyle from 'material-color-hash';
 
 import styles from './Focus.module.css';
+import { diff3MergeStringRanges } from '../utils/merge-edits';
 import { updateInputValueMovingSelection } from '../utils/update-cursor-positions';
 
-export default function FocusInput({
+export default function FocusTextarea({
   focusId,
   textarea = false,
   value = '',
   ...rest
 }: {
   focusId: string;
-  value: string;
   textarea?: boolean;
-} & React.InputHTMLAttributes<HTMLInputElement>) {
+  value: string;
+} & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const proposeSetUserFocus = usePropose(collabodux, setUserFocus);
   const currentSession = useSession(collabodux);
   const sessionMap = useUserMap(collabodux);
@@ -28,10 +29,10 @@ export default function FocusInput({
     const { focus, select } = sessionMap[session];
     return session !== currentSession && focus === focusId && select;
   });
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   function onFocus() {
-    if (currentSession && inputRef.current) {
-      const { selectionStart, selectionEnd } = inputRef.current;
+    if (currentSession && textareaRef.current) {
+      const { selectionStart, selectionEnd } = textareaRef.current;
       proposeSetUserFocus({
         session: currentSession,
         focus: focusId,
@@ -60,8 +61,8 @@ export default function FocusInput({
     .join(',');
   otherFocuses.reverse();
   if (
-    inputRef.current &&
-    updateInputValueMovingSelection(value, inputRef.current)
+    textareaRef.current &&
+    updateInputValueMovingSelection(value, textareaRef.current)
   ) {
     onFocus();
   }
@@ -89,13 +90,16 @@ export default function FocusInput({
       )}
       {otherFocuses.map((session) => {
         const { select } = sessionMap[session];
-        if (!inputRef.current) {
+        if (!textareaRef.current) {
           // TODO: recompute once inputRef is available
           return;
         }
         const [selectStart, selectEnd] = select!; // we filtered out falsy selects earlier
-        const startCaret = getCaretCoordinates(inputRef.current, selectStart);
-        const endCaret = getCaretCoordinates(inputRef.current, selectEnd);
+        const startCaret = getCaretCoordinates(
+          textareaRef.current,
+          selectStart,
+        );
+        const endCaret = getCaretCoordinates(textareaRef.current, selectEnd);
         const { backgroundColor } = toMaterialStyle(session, 500);
         return (
           <div
@@ -113,9 +117,10 @@ export default function FocusInput({
           />
         );
       })}
-      <input
-        ref={inputRef}
+      <textarea
+        ref={textareaRef}
         {...rest}
+        value={value}
         onKeyDown={onFocus}
         onSelect={onFocus}
         onInput={onFocus}

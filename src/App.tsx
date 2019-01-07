@@ -2,7 +2,8 @@ import React from 'react';
 import styles from './App.module.css';
 import { useMappedLocalState, useSession } from './client/collabodux-hooks';
 import {
-  addTodo, setLongText,
+  addTodo,
+  setLongText,
   setSubtitle,
   setTitle,
   setTodoDone,
@@ -14,6 +15,7 @@ import { collabodux } from './dux/connection';
 import { useUserMap } from './dux/use-user-map';
 import Focus from './components/Focus';
 import FocusInput from './components/FocusInput';
+import FocusTextarea from './components/FocusTextarea';
 
 export function App() {
   const proposeSetTitle = usePropose(collabodux, setTitle);
@@ -102,24 +104,21 @@ export function App() {
           </label>
         </div>
         <div>
-          <label htmlFor="longtext">
-            Long Text:
-          </label>
+          <label htmlFor="longtext">Long Text:</label>
           <div>
-            <Focus focusId="longtext">
-              <textarea
-                id="longtext"
-                value={longtext}
-                cols={80}
-                rows={20}
-                onChange={({ target }) =>
-                  proposeSetLongText({
-                    priorText: longtext,
-                    text: target.value,
-                  })
-                }
-                />
-            </Focus>
+            <FocusTextarea
+              focusId="longtext"
+              id="longtext"
+              value={longtext}
+              cols={80}
+              rows={20}
+              onChange={({ target }) =>
+                proposeSetLongText({
+                  priorText: longtext,
+                  text: target.value,
+                })
+              }
+            />
           </div>
         </div>
         <ul>
@@ -159,6 +158,7 @@ export function App() {
             </Focus>
           </li>
         </ul>
+        ;
       </main>
     </div>
   );

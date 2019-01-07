@@ -1,7 +1,8 @@
 import {
   addTodo,
   loadState,
-  removeUsers, setLongText,
+  removeUsers,
+  setLongText,
   setSubtitle,
   setTitle,
   setTodoDone,
@@ -14,26 +15,30 @@ import { fsaReducerBuilder } from './fsa-reducer-builder';
 import { IModelState, ITodo, IUser, validateAndAddDefaults } from './model';
 import { applyPatches, Draft, Patch } from 'immer';
 import shallowequal from 'shallowequal';
-import { mergeTwoStringEdits } from '../utils/merge-edits';
+import { diff3MergeStrings } from '../utils/merge-edits';
 
 export const reducer = fsaReducerBuilder<IModelState, Patch>()
   .add(loadState, (state, { newState }) => validateAndAddDefaults(newState))
   .add(
     setTitle,
     patch((draft, { priorTitle, title }) => {
-      draft.title = mergeTwoStringEdits(priorTitle, draft.title, title);
+      draft.title = diff3MergeStrings(priorTitle, draft.title, title);
     }),
   )
   .add(
     setSubtitle,
     patch((draft, { priorSubtitle, subtitle }) => {
-      draft.subtitle = mergeTwoStringEdits(priorSubtitle, draft.subtitle, subtitle);
+      draft.subtitle = diff3MergeStrings(
+        priorSubtitle,
+        draft.subtitle,
+        subtitle,
+      );
     }),
   )
   .add(
     setLongText,
     patch((draft, { priorText, text }) => {
-      draft.longtext = mergeTwoStringEdits(priorText, draft.longtext, text);
+      draft.longtext = diff3MergeStrings(priorText, draft.longtext, text);
     }),
   )
   .add(
@@ -54,7 +59,11 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
     setTodoLabel,
     patch((draft, { index, priorLabel, label }) => {
       if (draft.todos && draft.todos[index]) {
-        draft.todos[index].label = mergeTwoStringEdits(priorLabel, draft.todos[index].label, label);
+        draft.todos[index].label = diff3MergeStrings(
+          priorLabel,
+          draft.todos[index].label,
+          label,
+        );
       }
     }),
   )
@@ -78,7 +87,7 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
     setUserName,
     patch((draft, { session, priorUsername, username }) => {
       const user = ensureUser(draft, session);
-      user.username = mergeTwoStringEdits(priorUsername, user.username, username);
+      user.username = diff3MergeStrings(priorUsername, user.username, username);
     }),
   )
   .add(

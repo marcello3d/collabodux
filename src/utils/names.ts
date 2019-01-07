@@ -867,7 +867,7 @@ export const adjectives = [
   'Lazy',
   'Lean',
   'Learned',
-  'Left',
+  'SideIndex',
   'Legal',
   'Legit',
   'Lethal',
