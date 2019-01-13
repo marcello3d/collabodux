@@ -1,32 +1,20 @@
 import { Connection } from './ws';
-import {
-  ChangeMessage,
-  MessageType,
-  ResponseMessage,
-  StateMessage,
-} from '../shared/messages';
+import { ChangeMessage, MessageType, ResponseMessage, StateMessage } from '../shared/messages';
+import { createPatch, Operation } from 'rfc6902';
+import applyPatch from 'json-touch-patch';
 
-export type PatchReducer<State, Action, Patch> = (
+export type Reducer<State, Action> = (
   state: State,
   action: Action,
-) => Patch[];
-
-export type PatchApplier<State, Patch> = (
-  state: State,
-  patches: Patch[],
 ) => State;
 
 export type Subscriber<State> = (newState: State) => void;
 export type LoadStateActionProducer<Action> = (externalState: any) => Action;
-export type PatchCompressor<State, Patch> = (
-  state: State,
-  patches: Patch[],
-) => Patch[];
 
-export class Collabodux<State, Action, Patch> {
+export class Collabodux<State, Action> {
   private pendingActions: Action[] = [];
-  private pendingPatches: Patch[] = [];
-  private serverState: State | undefined = undefined;
+  // private pendingPatches: Operation[] = [];
+  private _serverState: State | undefined = undefined;
   private vtag!: string;
   private _localState: State = {} as State;
 
@@ -36,21 +24,13 @@ export class Collabodux<State, Action, Patch> {
   private _session: string | undefined = undefined;
 
   constructor(
-    private connection: Connection<Patch>,
+    private connection: Connection,
     private loadStateAction: LoadStateActionProducer<Action>,
-    private reducer: PatchReducer<State, Action, Patch>,
-    private applyPatches: PatchApplier<State, Patch>,
-    private compressPatches: PatchCompressor<State, Patch> = (
-      state: State,
-      patches: Patch[],
-    ) => patches,
+    private reducer: Reducer<State, Action>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this.onResponseMessage;
-    this._localState = applyPatches(
-      this._localState,
-      reducer(this._localState, loadStateAction({})),
-    );
+    this._localState = reducer(this._localState, loadStateAction({}));
   }
 
   get localState(): State {
@@ -80,7 +60,7 @@ export class Collabodux<State, Action, Patch> {
 
   propose(action: Action): void {
     if (this._propose(action)) {
-      if (this.pendingActions.length === 1 && this.serverState !== undefined) {
+      if (this.pendingActions.length === 1 && this._serverState !== undefined) {
         this.sendPendingChanges();
       }
       this.updateSubscribers();
@@ -90,14 +70,14 @@ export class Collabodux<State, Action, Patch> {
   // Propose without notifying subscribers
   private _propose(action: Action): boolean {
     const state = this._localState;
-    const patches = this.reducer(state, action);
+    const newState = this.reducer(state, action);
+    const patches = createPatch(state, newState);
     console.log('propose', action, 'patches', patches);
-    if (patches.length === 0) {
+    if (newState === state) {
       return false;
     }
-    this._localState = this.applyPatches(state, patches);
+    this._localState = newState;
     this.pendingActions.push(action);
-    this.pendingPatches.push(...patches);
     return true;
   }
 
@@ -105,7 +85,7 @@ export class Collabodux<State, Action, Patch> {
     this._sessions = Array.from(this._sessionSet).sort();
   }
 
-  onResponseMessage = (message: ResponseMessage<Patch>): void => {
+  onResponseMessage = (message: ResponseMessage): void => {
     switch (message.type) {
       case MessageType.state:
         this.onStateMessage(message);
@@ -134,8 +114,8 @@ export class Collabodux<State, Action, Patch> {
     sessions,
     vtag,
   }: StateMessage): void {
-    const firstState = this.serverState === undefined;
-    this.serverState = state;
+    const firstState = this._serverState === undefined;
+    this._serverState = state;
     this.vtag = vtag;
     this._session = session;
     this._sessionSet = new Set(sessions);
@@ -143,11 +123,11 @@ export class Collabodux<State, Action, Patch> {
     this.replayPendingActions(true);
   }
 
-  private onChangeMessage({ patches, vtag }: ChangeMessage<Patch>): void {
-    if (this.serverState === undefined) {
+  private onChangeMessage({ patches, vtag }: ChangeMessage): void {
+    if (this._serverState === undefined) {
       throw new Error('in bad state');
     }
-    this.serverState = this.applyPatches(this.serverState, patches);
+    this._serverState = applyPatch(this._serverState, patches);
     this.vtag = vtag;
     // TODO: we can look at patches and see if it conflicts with any patches in pendingPatches
     this.replayPendingActions(false);
@@ -155,11 +135,10 @@ export class Collabodux<State, Action, Patch> {
 
   private replayPendingActions(reloadState: boolean): void {
     const { pendingActions } = this;
-    this._localState = this.serverState as State;
+    this._localState = this._serverState as State;
     this.pendingActions = [];
-    this.pendingPatches = [];
     if (reloadState) {
-      this._propose(this.loadStateAction(this.serverState));
+      this._propose(this.loadStateAction(this._serverState));
     }
     pendingActions.forEach((action) => {
       try {
@@ -182,16 +161,11 @@ export class Collabodux<State, Action, Patch> {
     }
   }
   private sendNextPendingChange = async (): Promise<void> => {
-    const { pendingActions, pendingPatches } = this;
+    const { pendingActions } = this;
     const actionCountBeforeSend = pendingActions.length;
-    const patchCountBeforeSend = pendingPatches.length;
-    const compressPatches = this.compressPatches(
-      this.serverState!,
-      pendingPatches,
-    );
     const response = await this.connection.requestChange(
       this.vtag,
-      compressPatches,
+      createPatch(this._serverState, this._localState),
     );
     switch (response.type) {
       case MessageType.reject:
@@ -200,13 +174,12 @@ export class Collabodux<State, Action, Patch> {
         break;
 
       case MessageType.accept:
-        if (this.serverState === undefined) {
+        if (this._serverState === undefined) {
           throw new Error('unexpected state');
         }
-        this.serverState = this.applyPatches(this.serverState, pendingPatches);
+        this._serverState = this._localState;
         this.vtag = response.vtag;
         pendingActions.splice(0, actionCountBeforeSend);
-        pendingPatches.splice(0, patchCountBeforeSend);
         this.sendPendingChanges();
         break;
     }

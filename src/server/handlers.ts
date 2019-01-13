@@ -12,7 +12,7 @@ import {
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
 
-export default class ServerHandler<Patch> {
+export default class ServerHandler {
   private state: any = {};
   private vtag: string = uuidv4();
   private sessions = new Map<WebSocket, string>();
@@ -36,9 +36,7 @@ export default class ServerHandler<Patch> {
       console.log(
         `${chalk.gray(`[${session}]`)} ${chalk.magenta(`--> ${data}`)}`,
       );
-      this.handleMessage(target, session, JSON.parse(data) as RequestMessage<
-        Patch
-      >);
+      this.handleMessage(target, session, JSON.parse(data) as RequestMessage);
     } catch (e) {
       this.closeSocketWithError(target, e);
     }

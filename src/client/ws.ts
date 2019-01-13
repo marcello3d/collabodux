@@ -5,23 +5,24 @@ import {
   RequestMessage,
   ResponseMessage,
 } from '../shared/messages';
+import { Operation } from 'rfc6902';
 
 type Responder = {
   resolve: (message: AcceptMessage | RejectMessage) => void;
   reject: (error: Error) => void;
 };
-export class Connection<Patch> {
+export class Connection {
   constructor(private ws: WebSocket) {
     ws.onmessage = this.onMessage;
     ws.onclose = this.onClose;
     ws.onerror = this.onError;
   }
-  public onResponseMessage?: (message: ResponseMessage<Patch>) => void;
+  public onResponseMessage?: (message: ResponseMessage) => void;
 
   private promises = new Map<string, Responder>();
   private nextRequestId: number = 1;
 
-  send(message: RequestMessage<Patch>) {
+  send(message: RequestMessage) {
     const json = JSON.stringify(message);
     console.log('client --> ' + json);
     this.ws.send(json);
@@ -29,7 +30,7 @@ export class Connection<Patch> {
 
   requestChange(
     vtag: string,
-    patches: Patch[],
+    patches: Operation[],
   ): Promise<AcceptMessage | RejectMessage> {
     this.nextRequestId += 1;
     const req = this.nextRequestId.toString(36);
@@ -45,7 +46,7 @@ export class Connection<Patch> {
   }
 
   private onMessage = (event: MessageEvent) => {
-    const message = JSON.parse(event.data) as ResponseMessage<Patch>;
+    const message = JSON.parse(event.data) as ResponseMessage;
     console.log('client <-- ' + event.data);
     switch (message.type) {
       case MessageType.state:

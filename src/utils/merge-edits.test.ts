@@ -69,7 +69,7 @@ describe('sliceRanges', () => {
     ]);
   });
 });
-describe('diff3MergeStringRanges', () => {
+describe('diff3MergeStrings', () => {
   it('works with one-sided change', () => {
     expect(
       diff3MergeStringRanges(

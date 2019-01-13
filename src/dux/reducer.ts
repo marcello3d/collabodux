@@ -10,24 +10,23 @@ import {
   setUserFocus,
   setUserName,
 } from './actions';
-import { patch } from './immer';
 import { fsaReducerBuilder } from './fsa-reducer-builder';
 import { IModelState, ITodo, IUser, validateAndAddDefaults } from './model';
-import { applyPatches, Draft, Patch } from 'immer';
+import produce, { Draft } from 'immer';
 import shallowequal from 'shallowequal';
 import { diff3MergeStrings } from '../utils/merge-edits';
 
-export const reducer = fsaReducerBuilder<IModelState, Patch>()
+export const reducer = fsaReducerBuilder<IModelState>()
   .add(loadState, (state, { newState }) => validateAndAddDefaults(newState))
   .add(
     setTitle,
-    patch((draft, { priorTitle, title }) => {
+    produce((draft, { priorTitle, title }) => {
       draft.title = diff3MergeStrings(priorTitle, draft.title, title);
     }),
   )
   .add(
     setSubtitle,
-    patch((draft, { priorSubtitle, subtitle }) => {
+    produce((draft, { priorSubtitle, subtitle }) => {
       draft.subtitle = diff3MergeStrings(
         priorSubtitle,
         draft.subtitle,
@@ -37,13 +36,13 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     setLongText,
-    patch((draft, { priorText, text }) => {
+    produce((draft, { priorText, text }) => {
       draft.longtext = diff3MergeStrings(priorText, draft.longtext, text);
     }),
   )
   .add(
     addTodo,
-    patch((draft) => {
+    produce((draft) => {
       const todo: ITodo = {
         label: '',
         done: false,
@@ -57,7 +56,7 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     setTodoLabel,
-    patch((draft, { index, priorLabel, label }) => {
+    produce((draft, { index, priorLabel, label }) => {
       if (draft.todos && draft.todos[index]) {
         draft.todos[index].label = diff3MergeStrings(
           priorLabel,
@@ -69,7 +68,7 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     setTodoDone,
-    patch((draft, { index, done }) => {
+    produce((draft, { index, done }) => {
       if (draft.todos && draft.todos[index]) {
         draft.todos[index].done = done;
       }
@@ -77,7 +76,7 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     removeUsers,
-    patch((draft, { users }) => {
+    produce((draft, { users }) => {
       users.forEach((user) => {
         delete draft.users[user];
       });
@@ -85,14 +84,14 @@ export const reducer = fsaReducerBuilder<IModelState, Patch>()
   )
   .add(
     setUserName,
-    patch((draft, { session, priorUsername, username }) => {
+    produce((draft, { session, priorUsername, username }) => {
       const user = ensureUser(draft, session);
       user.username = diff3MergeStrings(priorUsername, user.username, username);
     }),
   )
   .add(
     setUserFocus,
-    patch((draft, { session, focus, select }) => {
+    produce((draft, { session, focus, select }) => {
       const user = ensureUser(draft, session);
       user.focus = focus;
       if (!shallowequal(user.select, select)) {

@@ -36,17 +36,8 @@ export const ModelState = t.type(
 
 export interface IModelState extends t.TypeOf<typeof ModelState> {}
 
-export function validateAndAddDefaults(state: any = {}): Patch[] {
-  const newState = ModelState.decode(state).getOrElseL((errors) => {
+export function validateAndAddDefaults(state: any = {}): IModelState {
+  return ModelState.decode(state).getOrElseL((errors) => {
     throw new Error(failure(errors).join('\n'));
-  });
-  return compare(state, newState).map((op) => {
-    return {
-      ...op,
-      path: op.path
-        .slice(1)
-        .split('/')
-        .map(unescapePathComponent),
-    } as Patch;
   });
 }

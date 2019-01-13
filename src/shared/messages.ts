@@ -1,3 +1,5 @@
+import { Operation } from 'rfc6902';
+
 export enum MessageType {
   error = 'error',
   state = 'state',
@@ -9,18 +11,18 @@ export enum MessageType {
   getState = 'getState',
 }
 
-export type RequestMessage<Patch> =
-  | RequestChangeMessage<Patch>
+export type RequestMessage =
+  | RequestChangeMessage
   | GetStateMessage;
 
-export type ResponseMessage<Patch> =
+export type ResponseMessage =
   | ErrorMessage
   | StateMessage
   | JoinMessage
   | LeaveMessage
   | RejectMessage
   | AcceptMessage
-  | ChangeMessage<Patch>;
+  | ChangeMessage;
 
 export enum RejectCode {
   outdated = 'outdated',
@@ -29,11 +31,11 @@ export enum RejectCode {
   internal = 'internal',
 }
 
-export type RequestChangeMessage<Patch> = {
+export type RequestChangeMessage = {
   type: MessageType.change;
   req: string;
   vtag: string;
-  patches: Patch[];
+  patches: Operation[];
 };
 export type GetStateMessage = {
   type: MessageType.getState;
@@ -75,9 +77,9 @@ export type AcceptMessage = {
   vtag: string;
 };
 
-export type ChangeMessage<Patch> = {
+export type ChangeMessage = {
   type: MessageType.change;
   vtag: string;
   user: string;
-  patches: Patch[];
+  patches: Operation[];
 };

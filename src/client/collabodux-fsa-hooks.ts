@@ -9,10 +9,9 @@ export function usePropose<
   State,
   BaseAction,
   Payload,
-  Patch,
   TAction extends BaseAction & Action<Payload>
 >(
-  collabodux: Collabodux<State, BaseAction, Patch>,
+  collabodux: Collabodux<State, BaseAction>,
   actionCreator: ActionCreator<Payload>,
 ) {
   return ((payload: Payload) => {

@@ -2,16 +2,16 @@ import { Collabodux } from './collabodux';
 import { useEffect, useState } from 'react';
 import shallowequal from 'shallowequal';
 
-export function useLocalState<State, Action, Patch>(
-  client: Collabodux<State, Action, Patch>,
+export function useLocalState<State, Action>(
+  client: Collabodux<State, Action>,
 ) {
   const [localState, setLocalState] = useState(client.localState);
   useEffect(() => client.subscribe(setLocalState), [client]);
   return localState;
 }
 
-export function useSession<State, Action, Patch>(
-  client: Collabodux<State, Action, Patch>,
+export function useSession<State, Action>(
+  client: Collabodux<State, Action>,
 ): string | undefined {
   const [currentSession, setSession] = useState(client.session);
   useEffect(
@@ -27,8 +27,8 @@ export function useSession<State, Action, Patch>(
   return currentSession;
 }
 
-export function useSessions<State, Action, Patch>(
-  client: Collabodux<State, Action, Patch>,
+export function useSessions<State, Action>(
+  client: Collabodux<State, Action>,
 ): string[] {
   const [currentSessions, setSessions] = useState(client.sessions);
   useEffect(
@@ -44,8 +44,8 @@ export function useSessions<State, Action, Patch>(
   return currentSessions;
 }
 
-export function useMappedLocalState<State, Action, Patch, T>(
-  client: Collabodux<State, Action, Patch>,
+export function useMappedLocalState<State, Action, T>(
+  client: Collabodux<State, Action>,
   fn: (state: State) => T,
 ) {
   const [partial, updatePartial] = useState<T>(fn(client.localState));
