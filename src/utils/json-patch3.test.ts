@@ -305,6 +305,27 @@ describe('patch3', () => {
       }),
     ).toEqual([{ id: 2, value: 10 }, { id: 3, value: 3 }, { id: 4, value: 4 }]);
   });
+  it('fails on duplicate array keys 1', () => {
+    const state1 = [1, 2, 4, 5, 6, 2];
+    const state2 = [1, 5, 2, 4, 6];
+    const state3 = [2, 3, 4, 1, 5, 6];
+    expect(() => diff3(state1, state2, state3))
+      .toThrowError(`Duplicate array key '2' at /`)
+  });
+  it('fails on duplicate array keys 2', () => {
+    const state1 = [1, 2, 4, 5, 6];
+    const state2 = [1, 5, 2, 4, 6, 2];
+    const state3 = [2, 3, 4, 1, 5, 6];
+    expect(() => diff3(state1, state2, state3))
+      .toThrowError(`Duplicate array key '2' at /`)
+  });
+  it('fails on duplicate array keys 3', () => {
+    const state1 = [1, 2, 4, 5, 6];
+    const state2 = [1, 5, 2, 4, 6];
+    const state3 = [2, 3, 4, 1, 5, 6, 2];
+    expect(() => diff3(state1, state2, state3))
+      .toThrowError(`Duplicate array key '2' at /`)
+  });
 });
 
 describe('type', () => {

@@ -100,16 +100,25 @@ function diff3Array(
   const bMap: JSONObject = {};
   const origKeys = orig.map((item, index) => {
     const key = handler.getArrayItemKey(item, index, path);
+    if (key in origMap) {
+      throw new Error(`Duplicate array key '${key}' at /${path}`);
+    }
     origMap[key] = item;
     return key;
   });
   const aKeys = a.map((item, index) => {
     const key = handler.getArrayItemKey(item, index, path);
+    if (key in aMap) {
+      throw new Error(`Duplicate array key '${key}' at /${path}`);
+    }
     aMap[key] = item;
     return key;
   });
   const bKeys = b.map((item, index) => {
     const key = handler.getArrayItemKey(item, index, path);
+    if (key in bMap) {
+      throw new Error(`Duplicate array key '${key}' at /${path}`);
+    }
     bMap[key] = item;
     return key;
   });
