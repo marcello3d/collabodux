@@ -209,24 +209,57 @@ describe('patch3', () => {
     const state3 = [1, 2, 3, 4];
     expect(diff3(state1, state2, state3)).toEqual([2, 1, 3, 4]);
   });
+  it('handles array simple moves', () => {
+    const state1 = [1, 2, 3, 4, 5, 6];
+    const state2 = [1, 2, 3, 4, 6, 5];
+    const state3 = [2, 1, 3, 4, 5, 6];
+    expect(diff3(state1, state2, state3)).toEqual([2, 1, 3, 4, 6, 5]);
+  });
+  it('handles array complex move', () => {
+    const state1 = [1, 2, 3, 4, 5, 6];
+    const state2 = [1, 5, 2, 3, 4, 6];
+    const state3 = [2, 3, 4, 1, 5, 6];
+    expect(diff3(state1, state2, state3)).toEqual([5, 2, 3, 4, 1, 6]);
+  });
+  it('handles array simple moves and delete', () => {
+    const state1 = [1, 2, 3, 4, 5, 6];
+    const state2 = [1, 3, 4, 5, 6];
+    const state3 = [1, 2, 3, 4, 6, 5];
+    expect(diff3(state1, state2, state3)).toEqual([1, 3, 4, 6, 5]);
+  });
+  it('handles array simple moves and add', () => {
+    const state1 = [1, 2, 3, 4, 5, 6];
+    const state2 = [1, 7, 2, 3, 4, 5, 6];
+    const state3 = [1, 2, 3, 4, 6, 5];
+    expect(diff3(state1, state2, state3)).toEqual([1, 7, 2, 3, 4, 6, 5]);
+  });
+  it('handles array complex move and delete', () => {
+    const state1 = [1, 2, 3, 4, 5, 6];
+    const state2 = [1, 5, 2, 4, 6];
+    const state3 = [2, 3, 4, 1, 5, 6];
+    expect(diff3(state1, state2, state3)).toEqual([5, 2, 4, 1, 6]);
+  });
   it('handles array removal', () => {
     const state1 = [1, 2, 3];
     const state2 = [1, 2, 3];
     const state3 = [1, 3];
     expect(diff3(state1, state2, state3)).toEqual([1, 3]);
   });
+
   it('handles array double remove', () => {
     const state1 = [1, 2, 3];
     const state2 = [2, 3];
     const state3 = [1, 2];
     expect(diff3(state1, state2, state3)).toEqual([2]);
   });
-  it('handles array double remove', () => {
+
+  it('handles array double remove at end', () => {
     const state1 = [1, 2, 3];
     const state2 = [1, 2];
     const state3 = [1, 3];
     expect(diff3(state1, state2, state3)).toEqual([1]);
   });
+
   it('handles array add and remove', () => {
     const state1 = [1, 2, 3];
     const state2 = [2, 3];
@@ -243,7 +276,17 @@ describe('patch3', () => {
       }),
     ).toEqual([{ id: 2 }, { id: 3 }, { id: 4 }]);
   });
-  it('handles keyed object array', () => {
+  it('handles keyed object array conflict', () => {
+    const state1 = [{ id: 'foo' }, { id: 'bar' }];
+    const state2 = [{ id: 'foo' }, { id: 'bar', value: 1 }];
+    const state3 = [{ id: 'foo' }, { id: 'bar', value: 2 }];
+    expect(() =>
+      diff3(state1, state2, state3, {
+        getArrayItemKey: (item: JSONObject) => String(item!.id),
+      }),
+    ).toThrowError('Conflict at /bar/value');
+  });
+  it('handles keyed object array with values', () => {
     const state1 = [
       { id: 1, value: 1 },
       { id: 2, value: 2 },

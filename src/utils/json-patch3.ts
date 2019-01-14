@@ -2,7 +2,7 @@ import deepEqual from 'fast-deep-equal';
 import { diff3MergeIndices } from 'node-diff3';
 import { Index } from './merge-edits';
 
-export type JSONLiteral = string | number | boolean | null;
+export type JSONLiteral = string | number | boolean | null | undefined;
 export type JSONValue = JSONLiteral | JSONObject | JSONArray;
 export interface JSONObject extends Record<string, JSONValue> {}
 export interface JSONArray extends Array<JSONValue> {}
@@ -99,42 +99,64 @@ function diff3Array(
   const aKeys = a.map(getKey);
   const bKeys = b.map(getKey);
 
+  const origMap: JSONObject = {};
+  const aMap: JSONObject = {};
+  const bMap: JSONObject = {};
+  origKeys.forEach((key, index) => origMap[key] = orig[index]);
+  aKeys.forEach((key, index) => aMap[key] = a[index]);
+  bKeys.forEach((key, index) => bMap[key] = b[index]);
   const obj = diff3ObjectInternal(
-    orig,
-    a,
-    b,
-    Object.keys(orig),
-    Object.keys(a),
-    Object.keys(b),
+    origMap,
+    aMap,
+    bMap,
+    origKeys,
+    aKeys,
+    bKeys,
     handler,
     path,
-  )
+  );
 
-  // const result: JSONValue[] = [];
-  // const sides: JSONValue[][] = [a, orig, b];
-  // const indices: Index[] = diff3MergeIndices(aKeys, origKeys, bKeys);
-  // for (let i = 0; i < indices.length; i++) {
-  //   const index: Index = indices[i];
-  //   if (index[0] === -1) {
-  //     const [, aStart, aLength, , , bStart, bLength] = index;
-  //     const aEnd = aStart + aLength;
-  //     for (let j = aStart; j<aEnd; j++) {
-  //       result.push(a[j]);
-  //     }
-  //     const bEnd = bStart + bLength;
-  //     for (let j = bStart; j<bEnd; j++) {
-  //       result.push(b[j]);
-  //     }
-  //   } else {
-  //     const [side, start, length] = index;
-  //     const arr = sides[side];
-  //     const end = start + length;
-  //     for (let j = start; j<end; j++) {
-  //       result.push(arr[j]);
-  //     }
-  //   }
-  // }
-  // return result;
+  const result: JSONValue[] = [];
+  const sides: string[][] = [aKeys, origKeys, bKeys];
+  const indices: Index[] = diff3MergeIndices(aKeys, origKeys, bKeys);
+  const add = (key: string) => {
+    const value = obj[key];
+    if (value) {
+      result.push(value);
+    }
+  };
+  for (let i = 0; i < indices.length; i++) {
+    const index: Index = indices[i];
+    if (index[0] === -1) {
+      const [, aStart, aLength, oStart, oLength, bStart, bLength] = index;
+      const aEnd = aStart + aLength;
+      const bEnd = bStart + bLength;
+      const oEnd = oStart + oLength;
+      // const aSlice = new Set(aKeys.slice(aStart, aEnd));
+      const bSlice = new Set(bKeys.slice(bStart, bEnd));
+      const oSlice = new Set(origKeys.slice(oStart, oEnd));
+      for (let j = aStart; j<aEnd; j++) {
+        const key = aKeys[j];
+        if (bSlice.has(key) || !oSlice.has(key)) {
+          add(key);
+        }
+      }
+      for (let j = bStart; j<bEnd; j++) {
+        const key = bKeys[j];
+        if (!oSlice.has(key)) {
+          add(key);
+        }
+      }
+    } else {
+      const [side, start, length] = index;
+      const arr = sides[side];
+      const end = start + length;
+      for (let j = start; j<end; j++) {
+        add(arr[j]);
+      }
+    }
+  }
+  return result;
 }
 
 function diff3Object(
@@ -156,16 +178,16 @@ function diff3Object(
   )
 }
 
-function diff3ObjectInternal<T extends JSONObject | JSONArray>(
-  orig: T,
-  a: T,
-  b: T,
+function diff3ObjectInternal(
+  orig: JSONObject,
+  a: JSONObject,
+  b: JSONObject,
   origKeys: string[],
   aKeys: string[],
   bKeys: string[],
   handler: Handler,
   path: Path,
-): T {
+): JSONObject {
   const newObject: JSONObject = {};
   const origKeySet = new Set(origKeys);
   const remainingBKeySet = new Set(bKeys);
