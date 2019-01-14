@@ -1,6 +1,7 @@
 import deepEqual from 'fast-deep-equal';
 import { diff3MergeIndices } from 'node-diff3';
 import { Index } from './merge-edits';
+import { JSONValue } from './json-patch3';
 
 export type JSONLiteral = string | number | boolean | null | undefined;
 export type JSONValue = JSONLiteral | JSONObject | JSONArray;
@@ -94,17 +95,25 @@ function diff3Array(
   handler: Handler,
   path: Path,
 ): JSONValue[] {
-  const getKey = (item: JSONValue, index: number) => handler.getArrayItemKey(item, index, path);
-  const origKeys = orig.map(getKey);
-  const aKeys = a.map(getKey);
-  const bKeys = b.map(getKey);
-
   const origMap: JSONObject = {};
   const aMap: JSONObject = {};
   const bMap: JSONObject = {};
-  origKeys.forEach((key, index) => origMap[key] = orig[index]);
-  aKeys.forEach((key, index) => aMap[key] = a[index]);
-  bKeys.forEach((key, index) => bMap[key] = b[index]);
+  const origKeys = orig.map((item, index) => {
+    const key = handler.getArrayItemKey(item, index, path);
+    origMap[key] = item;
+    return key;
+  });
+  const aKeys = a.map((item, index) => {
+    const key = handler.getArrayItemKey(item, index, path);
+    aMap[key] = item;
+    return key;
+  });
+  const bKeys = b.map((item, index) => {
+    const key = handler.getArrayItemKey(item, index, path);
+    bMap[key] = item;
+    return key;
+  });
+
   const obj = diff3ObjectInternal(
     origMap,
     aMap,
@@ -119,12 +128,6 @@ function diff3Array(
   const result: JSONValue[] = [];
   const sides: string[][] = [aKeys, origKeys, bKeys];
   const indices: Index[] = diff3MergeIndices(aKeys, origKeys, bKeys);
-  const add = (key: string) => {
-    const value = obj[key];
-    if (value) {
-      result.push(value);
-    }
-  };
   for (let i = 0; i < indices.length; i++) {
     const index: Index = indices[i];
     if (index[0] === -1) {
@@ -138,13 +141,13 @@ function diff3Array(
       for (let j = aStart; j<aEnd; j++) {
         const key = aKeys[j];
         if (bSlice.has(key) || !oSlice.has(key)) {
-          add(key);
+          result.push(obj[key]);
         }
       }
       for (let j = bStart; j<bEnd; j++) {
         const key = bKeys[j];
         if (!oSlice.has(key)) {
-          add(key);
+          result.push(obj[key]);
         }
       }
     } else {
@@ -152,7 +155,7 @@ function diff3Array(
       const arr = sides[side];
       const end = start + length;
       for (let j = start; j<end; j++) {
-        add(arr[j]);
+        result.push(obj[arr[j]]);
       }
     }
   }
