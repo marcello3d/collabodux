@@ -2,12 +2,15 @@ import { Connection } from './ws';
 import { ChangeMessage, MessageType, RejectCode, ResponseMessage, StateMessage } from '../shared/messages';
 import { createPatch } from 'rfc6902';
 import applyPatch from 'json-touch-patch';
-import { diff3, Handler, JSONObject, JSONValue } from 'json-diff3';
-import deepEqual from 'fast-deep-equal';
+import { diff3, Handler, JSONObject, JSONValue, jsonEqual } from 'json-diff3';
 import { PromiseContainer } from './promise-container';
+import { Subscriber, SubscriberChannel } from './subscriber-channel';
 
-export type Subscriber<State> = (newState: State) => void;
 export type NormalizeJsonToState<State> = (json: JSONValue) => State;
+export type SessionData = {
+  session: string | undefined;
+  sessions: string[];
+};
 
 export class Collabodux<State extends JSONObject> {
   private pendingStateChanges = false;
@@ -17,7 +20,8 @@ export class Collabodux<State extends JSONObject> {
   private _readyPromise: PromiseContainer<void> | undefined = undefined;
   private _vtag!: string;
 
-  private subscribers = new Set<Subscriber<State>>();
+  private _localStateSubscribers = new SubscriberChannel<State>();
+  private _sessionsStateSubscribers = new SubscriberChannel<SessionData>();
   private _sessions: string[] = [];
   private _sessionSet = new Set<string>();
   private _session: string | undefined = undefined;
@@ -28,14 +32,9 @@ export class Collabodux<State extends JSONObject> {
     private handler: Partial<Handler> = {},
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
-    this.connection.onResponseMessage = this.onResponseMessage;
-    this._resetState();
-  }
-
-  private _resetState() {
+    this.connection.onResponseMessage = this._onResponseMessage;
     this._readyPromise = new PromiseContainer();
   }
-
   get ready(): boolean {
     return !this._readyPromise;
   }
@@ -60,46 +59,55 @@ export class Collabodux<State extends JSONObject> {
     return this._sessions;
   }
 
-  subscribe(subscriber: Subscriber<State>): () => void {
-    if (!this.subscribers.has(subscriber)) {
-      if (this.ready) {
-        subscriber(this._localState);
-      }
-      this.subscribers.add(subscriber);
-      return () => this.subscribers.delete(subscriber);
+  subscribeLocalState(subscriber: Subscriber<State>): () => void {
+    if (this.ready) {
+      subscriber(this._localState);
     }
-    return () => {};
+    return this._localStateSubscribers.subscribe(subscriber);
   }
 
-  private updateLocalStateSubscribers(): void {
-    this.subscribers.forEach((subscriber) => subscriber(this._localState!));
+  subscribeSessions(subscriber: Subscriber<SessionData>): () => void {
+    if (this.ready) {
+      subscriber(this._sessionData());
+    }
+    return this._sessionsStateSubscribers.subscribe(subscriber);
   }
 
+  private _sessionData(): SessionData {
+    return {
+      session: this._session,
+      sessions: this._sessions,
+    };
+  }
   setLocalState(newState: State) {
     if (!this.ready) {
       throw new Error('Not ready');
     }
     this._setLocalState(newState);
+    this._sendLocalState();
   }
   _setLocalState(newState: State) {
-    if (deepEqual(newState, this._localState)) {
+    if (jsonEqual(newState, this._localState)) {
       return;
     }
     this._localState = newState;
     this.pendingStateChanges = true;
     this.sendPendingChanges();
-    if (this._readyPromise) {
-      this._readyPromise.resolve();
-      this._readyPromise = undefined;
-    }
-    this.updateLocalStateSubscribers();
   }
 
-  private _updateSessionsArray() {
+  private _sendLocalState() {
+    this._localStateSubscribers.send(this._localState!);
+  }
+
+  private _setSessionState() {
     this._sessions = Array.from(this._sessionSet).sort();
   }
 
-  onResponseMessage = (message: ResponseMessage): void => {
+  private _sendSessionState() {
+    this._sessionsStateSubscribers.send(this._sessionData());
+  }
+
+  private _onResponseMessage = (message: ResponseMessage): void => {
     switch (message.type) {
       case MessageType.state:
         this.onStateMessage(message);
@@ -111,15 +119,20 @@ export class Collabodux<State extends JSONObject> {
 
       case MessageType.join:
         this._sessionSet.add(message.session);
-        this._updateSessionsArray();
+        this._setSessionState();
+        this._sendSessionState();
         break;
 
       case MessageType.leave:
         this._sessionSet.delete(message.session);
-        this._updateSessionsArray();
+        this._setSessionState();
+        this._sendSessionState();
+        break;
+
+      default:
+        console.warn(`unexpected message type "${message.type}"`);
         break;
     }
-    this.updateLocalStateSubscribers();
   };
 
   private onStateMessage({
@@ -135,8 +148,14 @@ export class Collabodux<State extends JSONObject> {
     this._vtag = vtag;
     this._session = session;
     this._sessionSet = new Set(sessions);
-    this._updateSessionsArray();
     this._setLocalState(this.normalize(state));
+    this._setSessionState();
+
+    // Notify everyone after everything's been set
+    this._readyPromise.resolve();
+    this._readyPromise = undefined;
+    this._sendLocalState();
+    this._sendSessionState();
   }
 
   private onChangeMessage({ patches, vtag }: ChangeMessage): void {
@@ -146,9 +165,14 @@ export class Collabodux<State extends JSONObject> {
     const originalServerState = this._serverState;
     this._serverState = applyPatch(originalServerState, patches);
     this._vtag = vtag;
-    // TODO: handle conflicts
-    const mergedState = diff3(originalServerState, this._serverState, this._localState, this.handler);
+    const mergedState = diff3(
+      originalServerState,
+      this._serverState,
+      this._localState,
+      this.handler,
+    );
     this._setLocalState(this.normalize(mergedState));
+    this._sendLocalState();
   }
 
   private sendPendingChanges() {
@@ -180,7 +204,9 @@ export class Collabodux<State extends JSONObject> {
           case RejectCode.permission:
           case RejectCode.internal:
           default:
-            throw new Error(`server rejected (${response.code}): ${response.reason}`);
+            throw new Error(
+              `server rejected (${response.code}): ${response.reason}`,
+            );
         }
         break;
 

@@ -87,8 +87,10 @@ export function App() {
             <FocusInput
               focusId="title"
               value={title}
-              onChange={({ target }) =>
-                proposeSetTitle({ title: target.value })
+              onChange={({ target }) => {
+                console.log('onChange!!!!!')
+                return proposeSetTitle({ title: target.value });
+              }
               }
             />
           </label>
@@ -145,9 +147,10 @@ export function App() {
                 focusId={`todos/${index}/label`}
                 type="text"
                 value={todo.label}
-                onChange={({ target }) =>
+                onChange={({ target }) => {
+                  console.log('onchange');
                   proposeSetTodoLabel({ index, label: target.value })
-                }
+                }}
                 data-index={index}
               />{' '}
               <Focus focusId={`todos/${index}/move-up`}>

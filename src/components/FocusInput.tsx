@@ -118,7 +118,6 @@ export default function FocusInput({
         ref={inputRef}
         {...rest}
         value={value}
-        onKeyDown={onFocus}
         onSelect={onFocus}
         onInput={onFocus}
         onFocus={onFocus}

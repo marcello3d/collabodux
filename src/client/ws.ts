@@ -13,10 +13,7 @@ type Responder = {
 };
 
 function readableJsonForLog(json: string) {
-  return json
-    .replace(/([,{[])/g, '$1 ')
-    .replace(/([}\]])/g, ' $1')
-    .replace(/"/g, '');
+  return json.replace(/(,)/g, '$1 ').replace(/"/g, '');
 }
 
 export class Connection {

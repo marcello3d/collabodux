@@ -8,8 +8,6 @@ import { App } from './App';
 
 // @ts-ignore
 const { ConcurrentMode, Suspense }  = React;
-console.log('React.ConcurrentMode', ConcurrentMode);
-console.log('React.Suspense', Suspense);
 ReactDOM.render(
   <ConcurrentMode>
     <Suspense fallback={<div>Connecting!</div>}>

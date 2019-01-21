@@ -122,7 +122,6 @@ export default function FocusTextarea({
         ref={textareaRef}
         {...rest}
         value={value}
-        onKeyDown={onFocus}
         onSelect={onFocus}
         onInput={onFocus}
         onFocus={onFocus}
