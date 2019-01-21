@@ -1,10 +1,14 @@
 import { Action, ActionCreator } from 'typescript-fsa';
-import { Reducer } from '../client/collabodux';
 
 export type ActionPayloadHandler<State, Payload> = (
   state: State,
   payload: Payload,
   action: Action<Payload>,
+) => State;
+
+export type Reducer<State, Action> = (
+  state: State,
+  action: Action,
 ) => State;
 
 export interface FsaReducerBuilder<State> {

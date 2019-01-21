@@ -3,10 +3,11 @@ import toMaterialStyle from 'material-color-hash';
 
 import { useSession } from '../client/collabodux-hooks';
 import { setUserFocus } from '../dux/actions';
-import { usePropose } from '../client/collabodux-fsa-hooks';
+import { useDispatch } from '../dux/collabodux-fsa-hooks';
 import { collabodux } from '../dux/connection';
 import styles from './Focus.module.css';
 import { useUserMap } from '../dux/use-user-map';
+import { reducer } from '../dux/reducer';
 
 export default function Focus({
   focusId,
@@ -15,7 +16,7 @@ export default function Focus({
   focusId: string;
   children: React.ReactNode;
 }) {
-  const proposeSetUserFocus = usePropose(collabodux, setUserFocus);
+  const proposeSetUserFocus = useDispatch(collabodux, reducer, setUserFocus);
   const currentSession = useSession(collabodux);
   const sessionMap = useUserMap(collabodux);
   const otherFocuses = Object.keys(sessionMap).filter(

@@ -3,7 +3,7 @@ import getCaretCoordinates from 'textarea-caret';
 
 import { useSession } from '../client/collabodux-hooks';
 import { setUserFocus } from '../dux/actions';
-import { usePropose } from '../client/collabodux-fsa-hooks';
+import { useDispatch } from '../dux/collabodux-fsa-hooks';
 import { collabodux } from '../dux/connection';
 import { useUserMap } from '../dux/use-user-map';
 import toMaterialStyle from 'material-color-hash';
@@ -11,6 +11,7 @@ import toMaterialStyle from 'material-color-hash';
 import styles from './Focus.module.css';
 import { diff3MergeStringRanges } from '../utils/merge-edits';
 import { updateInputValueMovingSelection } from '../utils/update-cursor-positions';
+import { reducer } from '../dux/reducer';
 
 export default function FocusTextarea({
   focusId,
@@ -22,7 +23,7 @@ export default function FocusTextarea({
   textarea?: boolean;
   value: string;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const proposeSetUserFocus = usePropose(collabodux, setUserFocus);
+  const proposeSetUserFocus = useDispatch(collabodux, reducer, setUserFocus);
   const currentSession = useSession(collabodux);
   const sessionMap = useUserMap(collabodux);
   const otherFocuses = Object.keys(sessionMap).filter((session) => {

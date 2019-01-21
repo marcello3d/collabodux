@@ -3,13 +3,14 @@ import getCaretCoordinates from 'textarea-caret';
 
 import { useSession } from '../client/collabodux-hooks';
 import { setUserFocus } from '../dux/actions';
-import { usePropose } from '../client/collabodux-fsa-hooks';
+import { useDispatch } from '../dux/collabodux-fsa-hooks';
 import { collabodux } from '../dux/connection';
 import { useUserMap } from '../dux/use-user-map';
 import toMaterialStyle from 'material-color-hash';
 
 import styles from './Focus.module.css';
 import { updateInputValueMovingSelection } from '../utils/update-cursor-positions';
+import { reducer } from '../dux/reducer';
 
 export default function FocusInput({
   focusId,
@@ -21,7 +22,7 @@ export default function FocusInput({
   value: string;
   textarea?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
-  const proposeSetUserFocus = usePropose(collabodux, setUserFocus);
+  const proposeSetUserFocus = useDispatch(collabodux, reducer, setUserFocus);
   const currentSession = useSession(collabodux);
   const sessionMap = useUserMap(collabodux);
   const otherFocuses = Object.keys(sessionMap).filter((session) => {
@@ -116,6 +117,7 @@ export default function FocusInput({
       <input
         ref={inputRef}
         {...rest}
+        value={value}
         onKeyDown={onFocus}
         onSelect={onFocus}
         onInput={onFocus}

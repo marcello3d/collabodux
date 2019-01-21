@@ -10,28 +10,32 @@ import {
   setTodoLabel,
   setUserName,
 } from './dux/actions';
-import { usePropose } from './client/collabodux-fsa-hooks';
+import { useDispatch } from './dux/collabodux-fsa-hooks';
 import { collabodux } from './dux/connection';
 import { useUserMap } from './dux/use-user-map';
 import Focus from './components/Focus';
 import FocusInput from './components/FocusInput';
 import FocusTextarea from './components/FocusTextarea';
+import { reducer } from './dux/reducer';
 
 export function App() {
-  const proposeSetTitle = usePropose(collabodux, setTitle);
-  const proposeSetSubtitle = usePropose(collabodux, setSubtitle);
-  const proposeSetLongText = usePropose(collabodux, setLongText);
-  const proposeSetTodoDone = usePropose(collabodux, setTodoDone);
-  const proposeSetTodoLabel = usePropose(collabodux, setTodoLabel);
-  const proposeAddTodo = usePropose(collabodux, addTodo);
-  const proposeSetUserName = usePropose(collabodux, setUserName);
+  const proposeSetTitle = useDispatch(collabodux, reducer, setTitle);
+  const proposeSetSubtitle = useDispatch(collabodux, reducer, setSubtitle);
+  const proposeSetLongText = useDispatch(collabodux, reducer, setLongText);
+  const proposeSetTodoDone = useDispatch(collabodux, reducer, setTodoDone);
+  const proposeSetTodoLabel = useDispatch(collabodux, reducer, setTodoLabel);
+  const proposeAddTodo = useDispatch(collabodux, reducer, addTodo);
+  const proposeSetUserName = useDispatch(collabodux, reducer, setUserName);
 
   const currentSession = useSession(collabodux);
   const { title, subtitle, longtext, todos } = useMappedLocalState(
     collabodux,
-    ({ title, subtitle, longtext, todos }) => {
-      return { title, subtitle, longtext, todos };
-    },
+    ({ title, subtitle, longtext, todos }) => ({
+      title,
+      subtitle,
+      longtext,
+      todos,
+    }),
   );
   const userMap = useUserMap(collabodux);
 
@@ -56,7 +60,6 @@ export function App() {
                   proposeSetUserName({
                     session: currentSession,
                     username: target.value,
-                    priorUsername: currentUsername,
                   })
               : undefined
           }
@@ -83,7 +86,7 @@ export function App() {
               focusId="title"
               value={title}
               onChange={({ target }) =>
-                proposeSetTitle({ priorTitle: title, title: target.value })
+                proposeSetTitle({ title: target.value })
               }
             />
           </label>
@@ -96,7 +99,6 @@ export function App() {
               value={subtitle}
               onChange={({ target }) =>
                 proposeSetSubtitle({
-                  priorSubtitle: subtitle,
                   subtitle: target.value,
                 })
               }
@@ -105,62 +107,58 @@ export function App() {
         </p>
         <p>
           <label htmlFor="longtext">Long Text:</label>
-          <div>
-            <FocusTextarea
-              focusId="longtext"
-              id="longtext"
-              value={longtext}
-              cols={80}
-              rows={20}
-              onChange={({ target }) =>
-                proposeSetLongText({
-                  priorText: longtext,
-                  text: target.value,
-                })
-              }
-            />
-          </div>
         </p>
         <p>
-          Todo list:
-          <ul>
-            {todos.map((todo, index) => (
-              <li key={index}>
-                <Focus focusId={`todos/${index}/done`}>
-                  <input
-                    type="checkbox"
-                    checked={todo.done}
-                    onChange={({ target }) =>
-                      proposeSetTodoDone({
-                        index: Number(target.getAttribute('data-index')),
-                        done: target.checked,
-                      })
-                    }
-                    data-index={index}
-                  />
-                </Focus>{' '}
-                <FocusInput
-                  focusId={`todos/${index}/label`}
-                  type="text"
-                  value={todo.label}
+          <FocusTextarea
+            focusId="longtext"
+            id="longtext"
+            value={longtext}
+            cols={80}
+            rows={20}
+            onChange={({ target }) =>
+              proposeSetLongText({
+                text: target.value,
+              })
+            }
+          />
+        </p>
+        <p>Todo list:</p>
+        <ul>
+          {todos.map((todo, index) => (
+            <li key={index}>
+              <Focus focusId={`todos/${index}/done`}>
+                <input
+                  type="checkbox"
+                  checked={todo.done}
                   onChange={({ target }) =>
-                    proposeSetTodoLabel({
+                    proposeSetTodoDone({
                       index: Number(target.getAttribute('data-index')),
-                      priorLabel: todo.label,
-                      label: target.value,
+                      done: target.checked,
                     })
                   }
                   data-index={index}
                 />
-              </li>
-            ))}
-            <li>
-              <Focus focusId="todos/add">
-                <button onClick={() => proposeAddTodo()}>Add…</button>
-              </Focus>
+              </Focus>{' '}
+              <FocusInput
+                focusId={`todos/${index}/label`}
+                type="text"
+                value={todo.label}
+                onChange={({ target }) =>
+                  proposeSetTodoLabel({
+                    index: Number(target.getAttribute('data-index')),
+                    label: target.value,
+                  })
+                }
+                data-index={index}
+              />
             </li>
-          </ul>
-        </p>
+          ))}
+          <li>
+            <Focus focusId="todos/add">
+              <button onClick={() => proposeAddTodo()}>Add…</button>
+            </Focus>
+          </li>
+        </ul>
       </main>
     </div>
   );

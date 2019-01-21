@@ -1,6 +1,5 @@
 import {
   addTodo,
-  loadState,
   removeUsers,
   setLongText,
   setSubtitle,
@@ -11,33 +10,27 @@ import {
   setUserName,
 } from './actions';
 import { fsaReducerBuilder } from './fsa-reducer-builder';
-import { IModelState, ITodo, IUser, validateAndAddDefaults } from './model';
+import { IModelState, ITodo, IUser } from './model';
 import produce, { Draft } from 'immer';
 import shallowequal from 'shallowequal';
-import { diff3MergeStrings } from '../utils/merge-edits';
 
 export const reducer = fsaReducerBuilder<IModelState>()
-  .add(loadState, (state, { newState }) => validateAndAddDefaults(newState))
   .add(
     setTitle,
-    produce((draft, { priorTitle, title }) => {
-      draft.title = diff3MergeStrings(priorTitle, draft.title, title);
+    produce((draft, { title }) => {
+      draft.title = title;
     }),
   )
   .add(
     setSubtitle,
-    produce((draft, { priorSubtitle, subtitle }) => {
-      draft.subtitle = diff3MergeStrings(
-        priorSubtitle,
-        draft.subtitle,
-        subtitle,
-      );
+    produce((draft, { subtitle }) => {
+      draft.subtitle = subtitle;
     }),
   )
   .add(
     setLongText,
-    produce((draft, { priorText, text }) => {
-      draft.longtext = diff3MergeStrings(priorText, draft.longtext, text);
+    produce((draft, { text }) => {
+      draft.longtext = text;
     }),
   )
   .add(
@@ -56,13 +49,9 @@ export const reducer = fsaReducerBuilder<IModelState>()
   )
   .add(
     setTodoLabel,
-    produce((draft, { index, priorLabel, label }) => {
+    produce((draft, { index, label }) => {
       if (draft.todos && draft.todos[index]) {
-        draft.todos[index].label = diff3MergeStrings(
-          priorLabel,
-          draft.todos[index].label,
-          label,
-        );
+        draft.todos[index].label = label;
       }
     }),
   )
@@ -84,9 +73,8 @@ export const reducer = fsaReducerBuilder<IModelState>()
   )
   .add(
     setUserName,
-    produce((draft, { session, priorUsername, username }) => {
-      const user = ensureUser(draft, session);
-      user.username = diff3MergeStrings(priorUsername, user.username, username);
+    produce((draft, { session, username }) => {
+      ensureUser(draft, session).username = username;
     }),
   )
   .add(

@@ -11,16 +11,14 @@ import {
 } from '../shared/messages';
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
+import jsonPatch, { Operation } from 'json-touch-patch';
 
 export default class ServerHandler {
   private state: any = {};
   private vtag: string = uuidv4();
   private sessions = new Map<WebSocket, string>();
 
-  constructor(
-    private wss: Server,
-    private applyPatches: (state: any, patches: Patch[], user: string) => any,
-  ) {}
+  constructor(private wss: Server) {}
 
   onMessage = ({ data, type, target }: WSMessageEvent) => {
     try {
@@ -75,7 +73,7 @@ export default class ServerHandler {
     });
   };
 
-  send(socket: WebSocket, response: ResponseMessage<Patch> | string) {
+  send(socket: WebSocket, response: ResponseMessage | string) {
     try {
       const session = this.sessions.get(socket);
       if (!session) {
@@ -90,7 +88,7 @@ export default class ServerHandler {
     }
   }
 
-  broadcast(skipSocket: WebSocket, response: ResponseMessage<Patch>) {
+  broadcast(skipSocket: WebSocket, response: ResponseMessage) {
     const message = JSON.stringify(response);
     this.wss.clients.forEach((client) => {
       if (client !== skipSocket) {
@@ -102,7 +100,7 @@ export default class ServerHandler {
   handleMessage(
     socket: WebSocket,
     session: string,
-    request: RequestMessage<Patch>,
+    request: RequestMessage,
   ) {
     switch (request.type) {
       case MessageType.change:
@@ -130,7 +128,7 @@ export default class ServerHandler {
   private handleRequestChange(
     socket: WebSocket,
     user: string,
-    { req, vtag, patches }: RequestChangeMessage<Patch>,
+    { req, vtag, patches }: RequestChangeMessage,
   ) {
     if (vtag !== this.vtag) {
       this.send(socket, {
@@ -141,7 +139,7 @@ export default class ServerHandler {
     } else {
       try {
         try {
-          this.state = this.applyPatches(this.state, patches, user);
+          this.state = jsonPatch(this.state, patches);
         } catch (e) {
           this.send(socket, {
             type: MessageType.reject,
@@ -163,20 +161,12 @@ export default class ServerHandler {
           patches,
         });
       } catch (e) {
-        if (e.code === RejectCode.permission) {
-          this.send(socket, {
-            type: MessageType.reject,
-            req,
-            code: RejectCode.permission,
-          });
-        } else {
-          this.send(socket, {
-            type: MessageType.reject,
-            req,
-            code: RejectCode.internal,
-            reason: String(e),
-          });
-        }
+        this.send(socket, {
+          type: MessageType.reject,
+          req,
+          code: e.code || RejectCode.internal,
+          reason: String(e),
+        });
       }
     }
   }

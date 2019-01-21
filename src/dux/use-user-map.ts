@@ -3,7 +3,7 @@ import { IModelState, IUser } from './model';
 import { Collabodux } from '../client/collabodux';
 
 export function useUserMap<Action>(
-  collabodux: Collabodux<IModelState, Action>,
+  collabodux: Collabodux<IModelState>,
 ): Record<string, IUser> {
   const sessions = useSessions(collabodux);
   const users = useMappedLocalState(collabodux, ({ users }) => users);

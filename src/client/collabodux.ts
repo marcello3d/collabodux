@@ -1,22 +1,21 @@
 import { Connection } from './ws';
-import { ChangeMessage, MessageType, ResponseMessage, StateMessage } from '../shared/messages';
-import { createPatch, Operation } from 'rfc6902';
+import { ChangeMessage, MessageType, RejectCode, ResponseMessage, StateMessage } from '../shared/messages';
+import { createPatch } from 'rfc6902';
 import applyPatch from 'json-touch-patch';
-
-export type Reducer<State, Action> = (
-  state: State,
-  action: Action,
-) => State;
+import { diff3, JSONObject, JSONValue } from 'json-diff3';
+import deepEqual from 'fast-deep-equal';
+import { PromiseContainer } from './promise-container';
 
 export type Subscriber<State> = (newState: State) => void;
-export type LoadStateActionProducer<Action> = (externalState: any) => Action;
+export type NormalizeJsonToState<State> = (json: JSONValue) => State;
 
-export class Collabodux<State, Action> {
-  private pendingActions: Action[] = [];
-  // private pendingPatches: Operation[] = [];
-  private _serverState: State | undefined = undefined;
-  private vtag!: string;
-  private _localState: State = {} as State;
+export class Collabodux<State extends JSONObject> {
+  private pendingStateChanges = false;
+  private sendingChanges = false;
+  private _localState!: State;
+  private _serverState: JSONObject | undefined = undefined;
+  private _readyPromise: PromiseContainer<void> | undefined = undefined;
+  private _vtag!: string;
 
   private subscribers = new Set<Subscriber<State>>();
   private _sessions: string[] = [];
@@ -25,63 +24,77 @@ export class Collabodux<State, Action> {
 
   constructor(
     private connection: Connection,
-    private loadStateAction: LoadStateActionProducer<Action>,
-    private reducer: Reducer<State, Action>,
+    private normalize: NormalizeJsonToState<State>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this.onResponseMessage;
-    this._localState = reducer(this._localState, loadStateAction({}));
+    this._resetState();
+  }
+
+  private _resetState() {
+    this._readyPromise = new PromiseContainer();
+  }
+
+  get ready(): boolean {
+    return !this._readyPromise;
+  }
+  private throwIfNotReady() {
+    if (this._readyPromise) {
+      throw this._readyPromise.promise;
+    }
   }
 
   get localState(): State {
+    this.throwIfNotReady();
     return this._localState;
   }
 
   get session(): string | undefined {
+    this.throwIfNotReady();
     return this._session;
   }
 
   get sessions(): string[] {
+    this.throwIfNotReady();
     return this._sessions;
   }
 
   subscribe(subscriber: Subscriber<State>): () => void {
     if (!this.subscribers.has(subscriber)) {
-      subscriber(this._localState);
+      if (this.ready) {
+        subscriber(this._localState);
+      }
       this.subscribers.add(subscriber);
       return () => this.subscribers.delete(subscriber);
     }
     return () => {};
   }
 
-  private updateSubscribers(): void {
+  private updateLocalStateSubscribers(): void {
     this.subscribers.forEach((subscriber) => subscriber(this._localState!));
   }
 
-  propose(action: Action): void {
-    if (this._propose(action)) {
-      if (this.pendingActions.length === 1 && this._serverState !== undefined) {
-        this.sendPendingChanges();
-      }
-      this.updateSubscribers();
+  setLocalState(newState: State) {
+    if (!this.ready) {
+      throw new Error('Not ready');
     }
+    this._setLocalState(newState);
   }
-
-  // Propose without notifying subscribers
-  private _propose(action: Action): boolean {
-    const state = this._localState;
-    const newState = this.reducer(state, action);
-    const patches = createPatch(state, newState);
-    console.log('propose', action, 'patches', patches);
-    if (newState === state) {
-      return false;
+  _setLocalState(newState: State) {
+    if (deepEqual(newState, this._localState)) {
+      return;
     }
     this._localState = newState;
-    this.pendingActions.push(action);
-    return true;
+    this.pendingStateChanges = true;
+    this.sendPendingChanges();
+    if (this._readyPromise) {
+      this._readyPromise.resolve();
+      this._readyPromise = undefined;
+    }
+    this.updateLocalStateSubscribers();
   }
 
-  private updateSessionsArray() {
+  private _updateSessionsArray() {
     this._sessions = Array.from(this._sessionSet).sort();
   }
 
@@ -97,15 +110,15 @@ export class Collabodux<State, Action> {
 
       case MessageType.join:
         this._sessionSet.add(message.session);
-        this.updateSessionsArray();
+        this._updateSessionsArray();
         break;
 
       case MessageType.leave:
         this._sessionSet.delete(message.session);
-        this.updateSessionsArray();
+        this._updateSessionsArray();
         break;
     }
-    this.updateSubscribers();
+    this.updateLocalStateSubscribers();
   };
 
   private onStateMessage({
@@ -114,72 +127,63 @@ export class Collabodux<State, Action> {
     sessions,
     vtag,
   }: StateMessage): void {
-    const firstState = this._serverState === undefined;
+    if (!this._readyPromise) {
+      throw new Error('unexpected StateMessage');
+    }
     this._serverState = state;
-    this.vtag = vtag;
+    this._vtag = vtag;
     this._session = session;
     this._sessionSet = new Set(sessions);
-    this.updateSessionsArray();
-    this.replayPendingActions(true);
+    this._updateSessionsArray();
+    this._setLocalState(this.normalize(state));
   }
 
   private onChangeMessage({ patches, vtag }: ChangeMessage): void {
     if (this._serverState === undefined) {
-      throw new Error('in bad state');
+      throw new Error('ChangeMessage without StateMessage');
     }
-    this._serverState = applyPatch(this._serverState, patches);
-    this.vtag = vtag;
-    // TODO: we can look at patches and see if it conflicts with any patches in pendingPatches
-    this.replayPendingActions(false);
-  }
-
-  private replayPendingActions(reloadState: boolean): void {
-    const { pendingActions } = this;
-    this._localState = this._serverState as State;
-    this.pendingActions = [];
-    if (reloadState) {
-      this._propose(this.loadStateAction(this._serverState));
-    }
-    pendingActions.forEach((action) => {
-      try {
-        this._propose(action);
-      } catch (e) {
-        console.warn(
-          `Dropped action ${action}, it could not be applied anymore: ${e}`,
-        );
-      }
-    });
-    if (reloadState) {
-      this.sendPendingChanges();
-      this.updateSubscribers();
-    }
+    const originalServerState = this._serverState;
+    this._serverState = applyPatch(originalServerState, patches);
+    this._vtag = vtag;
+    // TODO: handle conflicts
+    const mergedState = diff3(originalServerState, this._serverState, this._localState);
+    this._setLocalState(this.normalize(mergedState));
   }
 
   private sendPendingChanges() {
-    if (this.pendingActions.length > 0) {
+    if (!this.sendingChanges && this.pendingStateChanges) {
+      this.sendingChanges = true;
       setTimeout(this.sendNextPendingChange, this.bufferTimeMs);
     }
   }
+
   private sendNextPendingChange = async (): Promise<void> => {
-    const { pendingActions } = this;
-    const actionCountBeforeSend = pendingActions.length;
-    const response = await this.connection.requestChange(
-      this.vtag,
-      createPatch(this._serverState, this._localState),
-    );
+    this.pendingStateChanges = false;
+    const newServerState = this._localState;
+    const patches = createPatch(this._serverState, newServerState);
+    const response = await this.connection.requestChange(this._vtag, patches);
+    this.sendingChanges = false;
     switch (response.type) {
       case MessageType.reject:
-        console.warn('Change rejected; outdated');
-        // We're out of sync, wait for next ChangeMessage from server
+        console.debug(`Change rejected (${response.code})`);
+        switch (response.code) {
+          case RejectCode.outdated:
+            // We're out of sync, just wait for next ChangeMessage from server
+            break;
+          case RejectCode.badRequest:
+          case RejectCode.permission:
+          case RejectCode.internal:
+          default:
+            throw new Error(`server rejected (${response.code}): ${response.reason}`);
+        }
         break;
 
       case MessageType.accept:
         if (this._serverState === undefined) {
           throw new Error('unexpected state');
         }
-        this._serverState = this._localState;
-        this.vtag = response.vtag;
-        pendingActions.splice(0, actionCountBeforeSend);
+        this._serverState = newServerState;
+        this._vtag = response.vtag;
         this.sendPendingChanges();
         break;
     }

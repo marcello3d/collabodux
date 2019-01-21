@@ -8,6 +8,7 @@
     "fast-json-patch": "2.0.7",
     "immer": "1.9.3",
     "io-ts": "1.5.1",
+    "json-diff3": "1.0.1",
     "json-touch-patch": "0.11.2",
     "material-color-hash": "0.1.6",
     "node-diff3": "1.0.0",

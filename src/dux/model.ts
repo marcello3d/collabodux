@@ -1,8 +1,7 @@
 import * as t from 'io-ts';
 import { failure } from 'io-ts/lib/PathReporter';
 import { defaulted, optional } from './io-ts-util';
-import { compare, unescapePathComponent } from 'fast-json-patch';
-import { Patch } from 'immer';
+import { JSONObject } from 'json-diff3';
 
 export const User = t.type(
   {
@@ -34,9 +33,9 @@ export const ModelState = t.type(
   'ModelState',
 );
 
-export interface IModelState extends t.TypeOf<typeof ModelState> {}
+export interface IModelState extends t.TypeOf<typeof ModelState>, JSONObject {}
 
-export function validateAndAddDefaults(state: any = {}): IModelState {
+export function validateAndNormalize(state: any = {}): IModelState {
   return ModelState.decode(state).getOrElseL((errors) => {
     throw new Error(failure(errors).join('\n'));
   });

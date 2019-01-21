@@ -1,8 +1,8 @@
-import { validateAndAddDefaults } from './model';
+import { validateAndNormalize } from './model';
 
-describe('validateAndAddDefaults', () => {
+describe('validateAndNormalize', () => {
   it('handles empty object', () => {
-    expect(validateAndAddDefaults({})).toEqual([
+    expect(validateAndNormalize({})).toEqual([
       { op: 'add', path: ['title'], value: '' },
       { op: 'add', path: ['subtitle'], value: '' },
       { op: 'add', path: ['todos'], value: [] },
@@ -12,7 +12,7 @@ describe('validateAndAddDefaults', () => {
 
   it('handles non-empty object', () => {
     expect(
-      validateAndAddDefaults({
+      validateAndNormalize({
         title: 'title',
         todos: [
           {
@@ -32,7 +32,7 @@ describe('validateAndAddDefaults', () => {
 
   it('fails on type mismatch', () => {
     expect(() =>
-      validateAndAddDefaults({
+      validateAndNormalize({
         title: 5,
       }),
     ).toThrow('Invalid value 5 supplied to : ModelState/title: string');

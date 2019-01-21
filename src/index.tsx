@@ -6,7 +6,18 @@ import './index.css';
 import * as serviceWorker from './serviceWorker';
 import { App } from './App';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+// @ts-ignore
+const { ConcurrentMode, Suspense }  = React;
+console.log('React.ConcurrentMode', ConcurrentMode);
+console.log('React.Suspense', Suspense);
+ReactDOM.render(
+  <ConcurrentMode>
+    <Suspense fallback={<div>Connecting!</div>}>
+      <App />
+    </Suspense>
+  </ConcurrentMode>,
+  document.getElementById('root'),
+);
 
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.

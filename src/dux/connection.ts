@@ -1,21 +1,17 @@
 import { Connection } from '../client/ws';
-import { applyPatches, Patch } from 'immer';
 import { Collabodux } from '../client/collabodux';
-import { reducer } from './reducer';
-import { loadState, removeUsers, setUserName } from './actions';
+import { removeUsers, setUserName } from './actions';
 import { randomAnimalName } from '../utils/names';
-import { compressPatches } from './immer';
+import { validateAndNormalize } from './model';
+import { reducer } from './reducer';
+import { dispatch } from './collabodux-fsa-hooks';
 
 export const connection = new Connection(
-  // new WebSocket(`ws://${location.hostname}:4000`),
-  new WebSocket(`wss://collabodux1.now.sh:443`),
+  new WebSocket(`ws://${location.hostname}:4000`),
+  // new WebSocket(`wss://collabodux1.now.sh:443`),
 );
 
-export const collabodux = new Collabodux(
-  connection,
-  (newState) => loadState({ newState }),
-  reducer,
-);
+export const collabodux = new Collabodux(connection, validateAndNormalize);
 
 let session: string | undefined = undefined;
 let sessions: string[] | undefined = undefined;
@@ -28,20 +24,20 @@ collabodux.subscribe((state) => {
         (session) => !sessionSet.has(session),
       );
       if (obsoleteUsers.length > 0) {
-        collabodux.propose(removeUsers({ users: obsoleteUsers }));
+        dispatch(collabodux, reducer, removeUsers({ users: obsoleteUsers }));
       }
     }
   }
   if (collabodux.session !== session) {
     session = collabodux.session;
     if (session) {
-      collabodux.propose(
+      dispatch(collabodux, reducer,
         setUserName({
           session,
-          priorUsername: '',
           username: randomAnimalName(),
         }),
       );
     }
   }
 });
+
