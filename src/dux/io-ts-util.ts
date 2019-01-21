@@ -16,13 +16,22 @@ export function defaultString(defaultValue: string = '') {
 
 export function defaulted<T extends t.Any>(
   type: T,
-  defaultValue: t.TypeOf<T>,
+  defaultValue: t.TypeOf<T> | (() => t.TypeOf<T>),
 ): t.Type<t.TypeOf<T>, any> {
   return new t.Type(
     type.name,
     (v: any): v is T => type.is(v),
-    (v: any, context: Context) =>
-      type.validate(v !== undefined ? v : defaultValue, context),
+    (v: any, context: Context) => {
+      if (v !== undefined) {
+        return type.validate(v, context);
+      } else {
+        if (defaultValue instanceof Function) {
+          return type.validate(defaultValue(), context);
+        } else {
+          return type.validate(defaultValue, context);
+        }
+      }
+    },
     (v: any) => type.encode(v),
   );
 }

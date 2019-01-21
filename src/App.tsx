@@ -79,7 +79,7 @@ export function App() {
         </ul>
       </nav>
       <main>
-        <p>
+        <div>
           <label>
             Title:{' '}
             <FocusInput
@@ -90,8 +90,8 @@ export function App() {
               }
             />
           </label>
-        </p>
-        <p>
+        </div>
+        <div>
           <label>
             Subtitle:{' '}
             <FocusInput
@@ -104,11 +104,11 @@ export function App() {
               }
             />
           </label>
-        </p>
-        <p>
+        </div>
+        <div>
           <label htmlFor="longtext">Long Text:</label>
-        </p>
-        <p>
+        </div>
+        <div>
           <FocusTextarea
             focusId="longtext"
             id="longtext"
@@ -121,8 +121,8 @@ export function App() {
               })
             }
           />
-        </p>
-        <p>Todo list:</p>
+        </div>
+        <div>Todo list:</div>
         <ul>
           {todos.map((todo, index) => (
             <li key={index}>

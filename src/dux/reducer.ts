@@ -13,6 +13,7 @@ import { fsaReducerBuilder } from './fsa-reducer-builder';
 import { IModelState, ITodo, IUser } from './model';
 import produce, { Draft } from 'immer';
 import shallowequal from 'shallowequal';
+import uuid from 'uuid/v4';
 
 export const reducer = fsaReducerBuilder<IModelState>()
   .add(
@@ -37,6 +38,7 @@ export const reducer = fsaReducerBuilder<IModelState>()
     addTodo,
     produce((draft) => {
       const todo: ITodo = {
+        key: uuid(),
         label: '',
         done: false,
       };

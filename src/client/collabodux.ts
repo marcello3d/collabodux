@@ -2,7 +2,7 @@ import { Connection } from './ws';
 import { ChangeMessage, MessageType, RejectCode, ResponseMessage, StateMessage } from '../shared/messages';
 import { createPatch } from 'rfc6902';
 import applyPatch from 'json-touch-patch';
-import { diff3, JSONObject, JSONValue } from 'json-diff3';
+import { diff3, Handler, JSONObject, JSONValue } from 'json-diff3';
 import deepEqual from 'fast-deep-equal';
 import { PromiseContainer } from './promise-container';
 
@@ -25,6 +25,7 @@ export class Collabodux<State extends JSONObject> {
   constructor(
     private connection: Connection,
     private normalize: NormalizeJsonToState<State>,
+    private handler: Partial<Handler> = {},
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this.onResponseMessage;
@@ -146,7 +147,7 @@ export class Collabodux<State extends JSONObject> {
     this._serverState = applyPatch(originalServerState, patches);
     this._vtag = vtag;
     // TODO: handle conflicts
-    const mergedState = diff3(originalServerState, this._serverState, this._localState);
+    const mergedState = diff3(originalServerState, this._serverState, this._localState, this.handler);
     this._setLocalState(this.normalize(mergedState));
   }
 
@@ -161,6 +162,11 @@ export class Collabodux<State extends JSONObject> {
     this.pendingStateChanges = false;
     const newServerState = this._localState;
     const patches = createPatch(this._serverState, newServerState);
+    if (patches.length === 0) {
+      // nothing changed
+      this.sendingChanges = false;
+      return;
+    }
     const response = await this.connection.requestChange(this._vtag, patches);
     this.sendingChanges = false;
     switch (response.type) {

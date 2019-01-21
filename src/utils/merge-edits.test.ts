@@ -34,6 +34,11 @@ describe('diff3MergeStrings', () => {
   it('merges conflicting edits 1', () => {
     expect(diff3MergeStrings('two', 'one', 'two three')).toEqual('one three');
   });
+  it('merges semi non-conflicting adds', () => {
+    // This might seem counter-intuitive, but it works
+    expect(diff3MergeStrings('', 'subtitle1111', 'subtitle2222'))
+      .toEqual('subtitle1111subtitle2222');
+  });
 });
 
 describe('sliceRanges', () => {

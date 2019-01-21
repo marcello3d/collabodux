@@ -2,6 +2,7 @@ import * as t from 'io-ts';
 import { failure } from 'io-ts/lib/PathReporter';
 import { defaulted, optional } from './io-ts-util';
 import { JSONObject } from 'json-diff3';
+import uuid from 'uuid/v4';
 
 export const User = t.type(
   {
@@ -15,6 +16,7 @@ export interface IUser extends t.TypeOf<typeof User> {}
 
 export const Todo = t.type(
   {
+    key: defaulted(t.string, uuid),
     done: defaulted(t.boolean, false),
     label: defaulted(t.string, ''),
   },
