@@ -3,6 +3,7 @@ import styles from './App.module.css';
 import { useMappedLocalState, useSession } from './client/collabodux-hooks';
 import {
   addTodo,
+  moveTodo,
   setLongText,
   setSubtitle,
   setTitle,
@@ -23,6 +24,7 @@ export function App() {
   const proposeSetSubtitle = useDispatch(collabodux, reducer, setSubtitle);
   const proposeSetLongText = useDispatch(collabodux, reducer, setLongText);
   const proposeSetTodoDone = useDispatch(collabodux, reducer, setTodoDone);
+  const proposeMoveTodo = useDispatch(collabodux, reducer, moveTodo);
   const proposeSetTodoLabel = useDispatch(collabodux, reducer, setTodoLabel);
   const proposeAddTodo = useDispatch(collabodux, reducer, addTodo);
   const proposeSetUserName = useDispatch(collabodux, reducer, setUserName);
@@ -132,7 +134,7 @@ export function App() {
                   checked={todo.done}
                   onChange={({ target }) =>
                     proposeSetTodoDone({
-                      index: Number(target.getAttribute('data-index')),
+                      index,
                       done: target.checked,
                     })
                   }
@@ -144,13 +146,24 @@ export function App() {
                 type="text"
                 value={todo.label}
                 onChange={({ target }) =>
-                  proposeSetTodoLabel({
-                    index: Number(target.getAttribute('data-index')),
-                    label: target.value,
-                  })
+                  proposeSetTodoLabel({ index, label: target.value })
                 }
                 data-index={index}
-              />
+              />{' '}
+              <Focus focusId={`todos/${index}/move-up`}>
+                <button
+                  onClick={() => proposeMoveTodo({ index, newIndex: index - 1 })}
+                >
+                  🔼
+                </button>
+              </Focus>{' '}
+              <Focus focusId={`todos/${index}/move-down`}>
+                <button
+                  onClick={() => proposeMoveTodo({ index, newIndex: index + 1 })}
+                >
+                  🔽
+                </button>
+              </Focus>
             </li>
           ))}
           <li>

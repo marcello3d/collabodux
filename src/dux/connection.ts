@@ -27,7 +27,7 @@ export const collabodux = new Collabodux(
       return item.key;
     }
   },
-  10000
+  5 * 1000,
 );
 
 let session: string | undefined = undefined;

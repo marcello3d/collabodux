@@ -1,5 +1,6 @@
 import {
   addTodo,
+  moveTodo,
   removeUsers,
   setLongText,
   setSubtitle,
@@ -14,6 +15,7 @@ import { IModelState, ITodo, IUser } from './model';
 import produce, { Draft } from 'immer';
 import shallowequal from 'shallowequal';
 import uuid from 'uuid/v4';
+import { moveArrayItem } from '../utils/array-move';
 
 export const reducer = fsaReducerBuilder<IModelState>()
   .add(
@@ -63,6 +65,12 @@ export const reducer = fsaReducerBuilder<IModelState>()
       if (draft.todos && draft.todos[index]) {
         draft.todos[index].done = done;
       }
+    }),
+  )
+  .add(
+    moveTodo,
+    produce(({ todos }, { index, newIndex }) => {
+      moveArrayItem(todos, index, newIndex);
     }),
   )
   .add(

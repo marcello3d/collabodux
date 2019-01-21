@@ -11,6 +11,14 @@ type Responder = {
   resolve: (message: AcceptMessage | RejectMessage) => void;
   reject: (error: Error) => void;
 };
+
+function readableJsonForLog(json: string) {
+  return json
+    .replace(/([,{[])/g, '$1 ')
+    .replace(/([}\]])/g, ' $1')
+    .replace(/"/g, '');
+}
+
 export class Connection {
   constructor(private ws: WebSocket) {
     ws.onmessage = this.onMessage;
@@ -24,7 +32,7 @@ export class Connection {
 
   send(message: RequestMessage) {
     const json = JSON.stringify(message);
-    console.log('client --> ' + json);
+    console.log('client --> ' + readableJsonForLog(json));
     this.ws.send(json);
   }
 
@@ -47,7 +55,7 @@ export class Connection {
 
   private onMessage = (event: MessageEvent) => {
     const message = JSON.parse(event.data) as ResponseMessage;
-    console.log('client <-- ' + event.data);
+    console.log('client <-- ' + readableJsonForLog(event.data));
     switch (message.type) {
       case MessageType.state:
       case MessageType.change:

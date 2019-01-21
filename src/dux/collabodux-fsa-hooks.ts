@@ -5,15 +5,19 @@ import { Reducer } from './fsa-reducer-builder';
 
 type ActionProposer<Payload> = Payload extends void
   ? () => void
-  : (action: Payload) => void;
+  : (payload: Payload) => void;
 
-export function dispatch<State extends JSONObject,
+export function dispatch<
+  State extends JSONObject,
   BaseAction,
   Payload,
-  TAction extends BaseAction & Action<Payload>>(collabodux: Collabodux<State>, reducer: Reducer<State, BaseAction>, action: TAction) {
-  collabodux.setLocalState(
-    reducer(collabodux.localState, action),
-  );
+  TAction extends BaseAction & Action<Payload>
+>(
+  collabodux: Collabodux<State>,
+  reducer: Reducer<State, BaseAction>,
+  action: TAction,
+) {
+  collabodux.setLocalState(reducer(collabodux.localState, action));
 }
 
 export function useDispatch<

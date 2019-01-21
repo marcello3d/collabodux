@@ -24,6 +24,11 @@ export const setTodoLabel = actionCreator<{
   label: string;
 }>('SET_TODO_LABEL');
 
+export const moveTodo = actionCreator<{
+  index: number;
+  newIndex: number;
+}>('MOVE_TODO');
+
 export const addTodo = actionCreator('ADD_TODO');
 
 export const removeUsers = actionCreator<{
