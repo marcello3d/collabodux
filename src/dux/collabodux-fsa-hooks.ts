@@ -17,7 +17,6 @@ export function dispatch<
   reducer: Reducer<State, BaseAction>,
   action: TAction,
 ) {
-  console.debug(`ACTION: ${action.type}`, action.payload);
   collabodux.setLocalState(reducer(collabodux.localState, action));
 }
 
