@@ -9,8 +9,8 @@ import { JSONValue, Path } from 'json-diff3';
 import { diff3MergeStrings } from '../utils/merge-edits';
 
 export const connection = new Connection(
-  new WebSocket(`ws://${location.hostname}:4000`),
-  // new WebSocket(`wss://collabodux1.now.sh:443`),
+  // new WebSocket(`ws://${location.hostname}:4000`),
+  new WebSocket(`wss://collabodux2.now.sh:443`),
 );
 
 export const collabodux = new Collabodux(

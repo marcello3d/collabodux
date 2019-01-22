@@ -1,6 +1,7 @@
 import WebSocket, { Server } from 'ws';
 import uuidv4 from 'uuid/v4';
 import chalk from 'chalk';
+import jsonPatch from 'json-touch-patch';
 
 import {
   MessageType,
@@ -11,7 +12,6 @@ import {
 } from '../shared/messages';
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
-import jsonPatch, { Operation } from 'json-touch-patch';
 
 export default class ServerHandler {
   private state: any = {};

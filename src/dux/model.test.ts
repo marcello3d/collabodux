@@ -1,13 +1,18 @@
+jest.mock('uuid/v4', () => {
+  return () => '[mock-uuid]';
+});
+
 import { validateAndNormalize } from './model';
 
 describe('validateAndNormalize', () => {
   it('handles empty object', () => {
-    expect(validateAndNormalize({})).toEqual([
-      { op: 'add', path: ['title'], value: '' },
-      { op: 'add', path: ['subtitle'], value: '' },
-      { op: 'add', path: ['todos'], value: [] },
-      { op: 'add', path: ['users'], value: {} },
-    ]);
+    expect(validateAndNormalize({})).toEqual({
+      longtext: '',
+      subtitle: '',
+      title: '',
+      todos: [],
+      users: {},
+    });
   });
 
   it('handles non-empty object', () => {
@@ -22,12 +27,20 @@ describe('validateAndNormalize', () => {
           {},
         ],
       }),
-    ).toEqual([
-      { op: 'add', path: ['todos', '1', 'done'], value: false },
-      { op: 'add', path: ['todos', '1', 'label'], value: '' },
-      { op: 'add', path: ['subtitle'], value: '' },
-      { op: 'add', path: ['users'], value: {} },
-    ]);
+    ).toEqual({
+      longtext: '',
+      subtitle: '',
+      title: 'title',
+      todos: [
+        {
+          done: false,
+          key: '[mock-uuid]',
+          label: 'hi',
+        },
+        { done: false, key: '[mock-uuid]', label: '' },
+      ],
+      users: {},
+    });
   });
 
   it('fails on type mismatch', () => {

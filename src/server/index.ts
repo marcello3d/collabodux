@@ -1,6 +1,6 @@
 import { Server } from 'ws';
-import { formatAddress } from './server/wss';
-import ServerHandler from './server/handlers';
+import { formatAddress } from './wss';
+import ServerHandler from './handlers';
 
 const wss = new Server({
   port: 4000,

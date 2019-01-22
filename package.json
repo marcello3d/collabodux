@@ -27,8 +27,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start-server": "ts-node-dev -O '{\"module\": \"commonjs\"}' src/server.ts",
-    "now-start": "ts-node -O '{\"module\": \"commonjs\"}' src/server.ts",
+    "start-server": "ts-node-dev -P ./tsconfig.server.json src/server",
+    "now-build": "tsc -p ./tsconfig.server.json",
+    "now-start": "node dist/server",
+    "deploy-server": "now -A now.server.json",
+    "deploy-client": "yarn build && now -A now.client.json",
     "build": "GENERATE_SOURCEMAP=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
