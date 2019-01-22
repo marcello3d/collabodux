@@ -4,6 +4,9 @@ export function updateInputValueMovingSelection(
   value: string,
   input: HTMLInputElement | HTMLTextAreaElement,
 ): boolean {
+  if (document.activeElement !== input) {
+    return false;
+  }
   const priorValue = input.value;
   if (value === priorValue) {
     return false;
@@ -30,6 +33,7 @@ export function updateInputValueMovingSelection(
     const [{ start, end }] = ranges;
     input.selectionStart = start;
     input.selectionEnd = end;
+    return true;
   }
-  return true;
+  return false;
 }
