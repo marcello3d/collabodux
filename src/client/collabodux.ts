@@ -184,15 +184,14 @@ export class Collabodux<State extends JSONObject> {
 
   private sendNextPendingChange = async (): Promise<void> => {
     this.pendingStateChanges = false;
+    this.sendingChanges = false;
     const newServerState = this._localState;
     const patches = createPatch(this._serverState, newServerState);
     if (patches.length === 0) {
       // nothing changed
-      this.sendingChanges = false;
       return;
     }
     const response = await this.connection.requestChange(this._vtag, patches);
-    this.sendingChanges = false;
     switch (response.type) {
       case MessageType.reject:
         console.debug(`Change rejected (${response.code})`);
