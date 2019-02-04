@@ -1,4 +1,5 @@
 import actionCreatorFactory from 'typescript-fsa';
+import { IShape } from './model';
 
 const actionCreator = actionCreatorFactory();
 
@@ -6,9 +7,10 @@ export const setTitle = actionCreator<{
   title: string;
 }>('SET_TITLE');
 
-export const setSubtitle = actionCreator<{
-  subtitle: string;
-}>('SET_SUBTITLE');
+export const createCanvas = actionCreator<{
+  width: number;
+  height: number;
+}>('CREATE_CANVAS');
 
 export const setLongText = actionCreator<{
   text: string;
@@ -29,7 +31,14 @@ export const moveTodo = actionCreator<{
   newIndex: number;
 }>('MOVE_TODO');
 
-export const addTodo = actionCreator('ADD_TODO');
+export const addShape = actionCreator<{
+  shape: IShape;
+}>('ADD_SHAPE');
+
+export const updateShape = actionCreator<{
+  key: string,
+  shape: Partial<IShape>;
+}>('UPDATE_SHAPE');
 
 export const removeUsers = actionCreator<{
   users: string[];
@@ -45,3 +54,8 @@ export const setUserFocus = actionCreator<{
   focus?: string;
   select?: [number, number];
 }>('SET_USER_FOCUS');
+
+export const setUserSelectedShape = actionCreator<{
+  session: string;
+  key?: string;
+}>('SET_SELECTED_SHAPE');

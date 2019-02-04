@@ -1,21 +1,17 @@
 import {
-  addTodo,
-  moveTodo,
+  addShape,
+  createCanvas,
   removeUsers,
-  setLongText,
-  setSubtitle,
   setTitle,
-  setTodoDone,
-  setTodoLabel,
   setUserFocus,
   setUserName,
+  setUserSelectedShape,
+  updateShape,
 } from './actions';
 import { fsaReducerBuilder } from './fsa-reducer-builder';
-import { IModelState, ITodo, IUser } from './model';
+import { IModelState, IUser } from './model';
 import produce, { Draft } from 'immer';
 import shallowequal from 'shallowequal';
-import uuid from 'uuid/v4';
-import { moveArrayItem } from '../utils/array-move';
 
 export const reducer = fsaReducerBuilder<IModelState>()
   .add(
@@ -25,52 +21,28 @@ export const reducer = fsaReducerBuilder<IModelState>()
     }),
   )
   .add(
-    setSubtitle,
-    produce((draft, { subtitle }) => {
-      draft.subtitle = subtitle;
+    createCanvas,
+    produce((draft, { width, height }) => {
+      draft.canvas = { width, height, shapes: [] };
     }),
   )
   .add(
-    setLongText,
-    produce((draft, { text }) => {
-      draft.longtext = text;
-    }),
-  )
-  .add(
-    addTodo,
-    produce((draft) => {
-      const todo: ITodo = {
-        key: uuid(),
-        label: '',
-        done: false,
-      };
-      if (draft.todos) {
-        draft.todos.push(todo);
-      } else {
-        draft.todos = [todo];
+    addShape,
+    produce((draft, { shape }) => {
+      if (draft.canvas) {
+        draft.canvas.shapes.push(shape);
       }
     }),
   )
   .add(
-    setTodoLabel,
-    produce((draft, { index, label }) => {
-      if (draft.todos && draft.todos[index]) {
-        draft.todos[index].label = label;
+    updateShape,
+    produce((draft, { key, shape }) => {
+      if (draft.canvas) {
+        const existingShape = draft.canvas.shapes.find(({key: _key}) => key === _key);
+        if (existingShape) {
+          Object.assign(existingShape, shape);
+        }
       }
-    }),
-  )
-  .add(
-    setTodoDone,
-    produce((draft, { index, done }) => {
-      if (draft.todos && draft.todos[index]) {
-        draft.todos[index].done = done;
-      }
-    }),
-  )
-  .add(
-    moveTodo,
-    produce(({ todos }, { index, newIndex }) => {
-      moveArrayItem(todos, index, newIndex);
     }),
   )
   .add(
@@ -97,6 +69,12 @@ export const reducer = fsaReducerBuilder<IModelState>()
       }
     }),
   )
+  .add(
+    setUserSelectedShape,
+    produce((draft, { session, key }) => {
+      ensureUser(draft, session).selectedShape = key;
+    }),
+  )
   .build();
 
 function ensureUser(draft: Draft<IModelState>, session: string): Draft<IUser> {
@@ -105,6 +83,7 @@ function ensureUser(draft: Draft<IModelState>, session: string): Draft<IUser> {
       username: '',
       focus: undefined,
       select: undefined,
+      selectedShape: undefined,
     };
   }
   return draft.users[session];
