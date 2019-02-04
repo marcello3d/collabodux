@@ -17,12 +17,28 @@ function readableJsonForLog(json: string) {
 }
 
 export class Connection {
-  constructor(private ws: WebSocket) {
-    ws.onmessage = this.onMessage;
-    ws.onclose = this.onClose;
-    ws.onerror = this.onError;
+  private ws: WebSocket;
+  private retryWaitMs = 0;
+  constructor(public readonly url: string) {
+    this.ws = this.connect();
   }
+
   public onResponseMessage?: (message: ResponseMessage) => void;
+  public onClose?: () => void;
+
+  private connect(): WebSocket {
+    this.retryWaitMs += 5000;
+    const ws = new WebSocket(this.url);
+    ws.onopen = this._onOpen;
+    ws.onmessage = this._onMessage;
+    ws.onclose = this._onClose;
+    ws.onerror = this._onError;
+    this.ws = ws;
+    return ws;
+  }
+  private retry(): void {
+    setTimeout(() => this.connect(), this.retryWaitMs);
+  }
 
   private promises = new Map<string, Responder>();
   private nextRequestId: number = 1;
@@ -50,7 +66,11 @@ export class Connection {
     });
   }
 
-  private onMessage = (event: MessageEvent) => {
+  private _onOpen = (event: Event) => {
+    this.retryWaitMs = 0;
+  };
+
+  private _onMessage = (event: MessageEvent) => {
     const message = JSON.parse(event.data) as ResponseMessage;
     console.log('client <-- ' + readableJsonForLog(event.data));
     switch (message.type) {
@@ -74,15 +94,23 @@ export class Connection {
     }
   };
 
-  private onClose = (event: CloseEvent) => {
+  private _onClose = (event: CloseEvent) => {
     const e = new Error(`connection closed (${event.code}: ${event.reason})`);
     this.promises.forEach((promise) => promise.reject(e));
     this.promises.clear();
+    if (this.onClose) {
+      this.onClose();
+    }
+    this.retry();
   };
 
-  private onError = (event: Event) => {
+  private _onError = (event: Event) => {
     const e = new Error('connection error');
     this.promises.forEach((promise) => promise.reject(e));
     this.promises.clear();
+    if (this.onClose) {
+      this.onClose();
+    }
+    this.retry();
   };
 }

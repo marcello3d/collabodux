@@ -33,6 +33,7 @@ export class Collabodux<State extends JSONObject> {
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this._onResponseMessage;
+    this.connection.onClose = this._onClose;
     this._readyPromise = new PromiseContainer();
   }
   get ready(): boolean {
@@ -41,6 +42,12 @@ export class Collabodux<State extends JSONObject> {
   private throwIfNotReady() {
     if (this._readyPromise) {
       throw this._readyPromise.promise;
+    }
+  }
+
+  private _onClose(): void {
+    if (!this._readyPromise) {
+      this._readyPromise = new PromiseContainer();
     }
   }
 
@@ -142,18 +149,24 @@ export class Collabodux<State extends JSONObject> {
     vtag,
   }: StateMessage): void {
     if (!this._readyPromise) {
-      throw new Error('unexpected StateMessage');
+      if (this._serverState === undefined) {
+        throw new Error('unexpected StateMessage');
+      }
+      this.mergeNewServerState(state, vtag);
+    } else {
+      this._serverState = state;
+      this._vtag = vtag;
+      this._setLocalState(this.normalize(state));
     }
-    this._serverState = state;
-    this._vtag = vtag;
     this._session = session;
     this._sessionSet = new Set(sessions);
-    this._setLocalState(this.normalize(state));
     this._setSessionState();
 
     // Notify everyone after everything's been set
-    this._readyPromise.resolve();
-    this._readyPromise = undefined;
+    if (this._readyPromise) {
+      this._readyPromise.resolve();
+      this._readyPromise = undefined;
+    }
     this._sendLocalState();
     this._sendSessionState();
   }
@@ -162,17 +175,22 @@ export class Collabodux<State extends JSONObject> {
     if (this._serverState === undefined) {
       throw new Error('ChangeMessage without StateMessage');
     }
-    const originalServerState = this._serverState;
-    this._serverState = applyPatch(originalServerState, patches);
+    const newServerState = applyPatch(this._serverState, patches);
+    this.mergeNewServerState(newServerState, vtag);
+    this._sendLocalState();
+  }
+
+  private mergeNewServerState(newServerState: JSONObject, vtag: string) {
+    const baseServerState = this._serverState;
+    this._serverState = newServerState;
     this._vtag = vtag;
     const mergedState = diff3(
-      originalServerState,
+      baseServerState,
       this._serverState,
       this._localState,
       this.handler,
     );
     this._setLocalState(this.normalize(mergedState));
-    this._sendLocalState();
   }
 
   private sendPendingChanges() {

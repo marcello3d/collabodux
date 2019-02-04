@@ -11,7 +11,7 @@ import { MergableType } from './io-ts-util';
 
 export const connection = new Connection(
   // new WebSocket(`ws://${location.hostname}:4000`),
-  new WebSocket(`wss://collabodux2.now.sh:443`),
+  `wss://collabodux2.now.sh:443`
 );
 
 export const collabodux = new Collabodux(
