@@ -87,11 +87,7 @@ export function App() {
             <FocusInput
               focusId="title"
               value={title}
-              onChange={({ target }) => {
-                console.log('onChange!!!!!')
-                return proposeSetTitle({ title: target.value });
-              }
-              }
+              onChange={({ target }) => proposeSetTitle({ title: target.value })}
             />
           </label>
         </div>

@@ -45,13 +45,13 @@ export function useSessions<State extends JSONObject, Action>(
 
 export function useMappedLocalState<State extends JSONObject, Action, T>(
   client: Collabodux<State>,
-  fn: (state: State) => T,
+  mapStateToProps: (state: State) => T,
 ) {
-  const [partial, updatePartial] = useState<T>(fn(client.localState));
+  const [partial, updatePartial] = useState<T>(mapStateToProps(client.localState));
   useEffect(
     () =>
       client.subscribeLocalState((state) => {
-        const newPartial = fn(state);
+        const newPartial = mapStateToProps(state);
         if (!shallowequal(partial, newPartial)) {
           updatePartial(newPartial);
         }

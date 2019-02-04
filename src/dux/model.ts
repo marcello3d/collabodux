@@ -1,8 +1,15 @@
 import * as t from 'io-ts';
 import { failure } from 'io-ts/lib/PathReporter';
-import { defaulted, optional } from './io-ts-util';
+import { defaulted, mergable, optional } from './io-ts-util';
 import { JSONObject } from 'json-diff3';
 import uuid from 'uuid/v4';
+import { diff3MergeStrings } from '../utils/merge-edits';
+
+const mergableDefaultEmptyString = mergable(
+  defaulted(t.string, ''),
+  diff3MergeStrings,
+);
+const mergableString = mergable(t.string, diff3MergeStrings);
 
 export const User = t.type(
   {
@@ -18,7 +25,7 @@ export const Todo = t.type(
   {
     key: defaulted(t.string, uuid),
     done: defaulted(t.boolean, false),
-    label: defaulted(t.string, ''),
+    label: mergableDefaultEmptyString,
   },
   'Todo',
 );
@@ -26,11 +33,11 @@ export interface ITodo extends t.TypeOf<typeof Todo> {}
 
 export const ModelState = t.type(
   {
-    title: defaulted(t.string, ''),
-    subtitle: defaulted(t.string, ''),
-    longtext: defaulted(t.string, ''),
+    title: mergableDefaultEmptyString,
+    subtitle: mergableDefaultEmptyString,
+    longtext: mergableDefaultEmptyString,
     todos: defaulted(t.array(Todo), []),
-    users: defaulted(t.dictionary(t.string, User), {}),
+    users: defaulted(t.record(t.string, User), {}),
   },
   'ModelState',
 );

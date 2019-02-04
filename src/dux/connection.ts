@@ -2,11 +2,12 @@ import { Connection } from '../client/ws';
 import { Collabodux } from '../client/collabodux';
 import { removeUsers, setUserName } from './actions';
 import { randomAnimalName } from '../utils/names';
-import { validateAndNormalize } from './model';
+import { ModelState, validateAndNormalize } from './model';
 import { reducer } from './reducer';
 import { dispatch } from './collabodux-fsa-hooks';
 import { JSONValue, Path } from 'json-diff3';
-import { diff3MergeStrings } from '../utils/merge-edits';
+import * as IoPaths from 'io-ts-path';
+import { MergableType } from './io-ts-util';
 
 export const connection = new Connection(
   // new WebSocket(`ws://${location.hostname}:4000`),
@@ -18,17 +19,15 @@ export const collabodux = new Collabodux(
   validateAndNormalize,
   {
     handleMerge(
-      o: JSONValue | undefined,
-      a: JSONValue,
-      b: JSONValue,
+      base: JSONValue | undefined,
+      left: JSONValue,
+      right: JSONValue,
       path: Path,
     ): JSONValue {
-      if (
-        typeof o === 'string' &&
-        typeof a === 'string' &&
-        typeof b === 'string'
-      ) {
-        return diff3MergeStrings(o, a, b);
+      const type = IoPaths.type(ModelState, path);
+      console.log(`conflict at ${path} type=${type}: `, base, left, right);
+      if (type instanceof MergableType) {
+        return type.merge(base, left, right);
       }
       throw new Error(`cannot merge /${path.join('/')}`);
     },

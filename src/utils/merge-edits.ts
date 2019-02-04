@@ -1,7 +1,7 @@
 import { diff3MergeIndices } from 'node-diff3';
 
-export function diff3MergeStrings(original: string, a: string, b: string) {
-  return diff3MergeStringRanges(original, a, b).text;
+export function diff3MergeStrings(base: string, left: string, right: string) {
+  return diff3MergeStringRanges(base, left, right).text;
 }
 export type ConflictIndex = [
   -1,
@@ -52,34 +52,34 @@ export function sliceRanges<T>(
 }
 
 export function diff3MergeStringRanges<T>(
-  o: string,
-  a: string,
-  b: string,
-  oRanges: Range<T>[] = [],
-  aRanges: Range<T>[] = [],
-  bRanges: Range<T>[] = [],
+  base: string,
+  left: string,
+  right: string,
+  baseRanges: Range<T>[] = [],
+  leftRanges: Range<T>[] = [],
+  rightRanges: Range<T>[] = [],
 ): { text: string; ranges: Range<T>[] } {
   let result = '';
   const ranges: Range<T>[] = [];
-  const sideStrings: string[] = [a, o, b];
-  const sideRanges: Range<T>[][] = [aRanges, oRanges, bRanges];
-  const indices: Index[] = diff3MergeIndices(a, o, b);
+  const sideStrings: string[] = [left, base, right];
+  const sideRanges: Range<T>[][] = [leftRanges, baseRanges, rightRanges];
+  const indices: Index[] = diff3MergeIndices(left, base, right);
 
   const addRange = (range: Range<T>) => ranges.push(range);
 
   for (let i = 0; i < indices.length; i++) {
     const index: Index = indices[i];
     if (index[0] === -1) {
-      const [, aStart, aLength, oStart, oLength, bStart, bLength] = index;
-      const aEnd = aStart + aLength;
-      const aSlice = a.slice(aStart, aEnd);
-      const bEnd = oStart + bLength;
-      const bSlice = b.slice(oStart, bEnd);
-      forEachSliceRanges(aRanges, aStart, aEnd, result.length, addRange);
-      result += aSlice;
-      if (aSlice !== bSlice) {
-        forEachSliceRanges(bRanges, bStart, bEnd, result.length, addRange);
-        result += bSlice;
+      const [, leftStart, aLength, baseStart, baseLength, rightStart, rightLength] = index;
+      const leftEnd = leftStart + aLength;
+      const leftSlice = left.slice(leftStart, leftEnd);
+      const rightEnd = rightStart + rightLength;
+      const rightSlice = right.slice(rightStart, rightEnd);
+      forEachSliceRanges(leftRanges, leftStart, leftEnd, result.length, addRange);
+      result += leftSlice;
+      if (leftSlice !== rightSlice) {
+        forEachSliceRanges(rightRanges, rightStart, rightEnd, result.length, addRange);
+        result += rightSlice;
       }
     } else {
       const [side, start, length] = index;
