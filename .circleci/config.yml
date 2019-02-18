@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/app
+    docker:
+      - image: circleci/node:10
+    steps:
+      - checkout
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint
+      - run: yarn test-ci
+      - run: npx codecov

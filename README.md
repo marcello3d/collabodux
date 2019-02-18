@@ -1,5 +1,8 @@
 # Collabodux
 
+[![CircleCI](https://circleci.com/gh/marcello3d/collabodux.svg?style=svg)](https://circleci.com/gh/marcello3d/collabodux)
+[![codecov](https://codecov.io/gh/marcello3d/collabodux/branch/master/graph/badge.svg)](https://codecov.io/gh/marcello3d/collabodux)
+
 **Experimental**
 
 Collabodux is an idea and experimental library for realtime collaboration on
