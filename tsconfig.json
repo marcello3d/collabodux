@@ -15,12 +15,7 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
     "noEmit": true,
-    "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "baseUrl": ".",
-    "rootDir": "./packages",
-    "paths": {
-      "@collabodux/*": ["./*/src"]
-    }
+    "jsx": "react",
+    "lib": ["dom", "dom.iterable", "esnext"]
   }
 }

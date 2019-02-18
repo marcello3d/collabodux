@@ -1,5 +1,5 @@
 {
-  "name": "@collabodux/cliewnt",
+  "name": "@collabodux/client",
   "version": "1.0.0",
   "description": "collabodux client",
   "main": "lib/index.js",

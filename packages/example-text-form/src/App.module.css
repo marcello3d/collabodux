@@ -1,0 +1,27 @@
+.root {
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  flex-shrink: 0;
+  padding: 10px;
+  font-size: 20px;
+}
+.head a {
+  color: #6f39ee;
+}
+nav {
+  position: fixed;
+  right: 10px;
+  top: 10px;
+  border: solid 1px #444;
+  background: #eee;
+  padding: 10px;
+}
+
+main {
+  flex-grow: 1;
+  margin: 0 10px 10px;
+  border-radius: 10px;
+}
