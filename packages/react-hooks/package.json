@@ -1,0 +1,19 @@
+{
+  "name": "@collabodux/react-hooks",
+  "version": "1.0.0",
+  "description": "collabodux client",
+  "main": "lib/index.js",
+  "repository": "https://github.com/marcello3d/collabodux",
+  "author": "marcello@cellosoft.com",
+  "license": "Zlib",
+  "private": false,
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@collabodux/messages": "1.0.0",
+    "json-touch-patch": "0.11.2",
+    "uuid": "3.3.2",
+    "ws": "6.1.4"
+  }
+}
