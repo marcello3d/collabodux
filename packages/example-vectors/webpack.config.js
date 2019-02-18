@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+// @ts-ignore
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
@@ -5,7 +7,7 @@ module.exports = {
   devtool: 'source-map',
   entry: './src/index.tsx',
   output: {
-    filename: 'index.[hash:8].js',
+    filename: 'static/index.[hash:8].js',
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js'],
@@ -15,14 +17,7 @@ module.exports = {
     rules: [
       {
         test: /\.css$/,
-        use: [
-          'style-loader',
-          // {
-          //   loader: 'typings-for-css-modules-loader',
-          //   options: { namedExport: true, modules: true },
-          // },
-          'css-loader',
-        ],
+        use: ['style-loader', 'css-loader'],
       },
       {
         test: /\.tsx?$/,
