@@ -16,8 +16,8 @@ It “steals” ideas from a number of projects:
 - Changes are applied by diffing data structures (ala
   [React](https://reactjs.org) virtual dom)
 - Conflicts are resolved on the client side (ala
-  [Immer.js](https://github.com/mweststrate/immer)'
-  "[distributing state](<(https://medium.com/@mweststrate/distributing-state-changes-using-snapshots-patches-and-actions-part-2-2f50d8363988)">)
+  [@mweststrate](https://github.com/mweststrate)'s
+  “[Distributing state changes using snapshots, patches and actions](https://medium.com/@mweststrate/distributing-state-changes-using-snapshots-patches-and-actions-part-2-2f50d8363988)”)
 - Data structure design can limit conflicts ([CRDT](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type))
 
 ### What makes it good:
@@ -34,7 +34,7 @@ It “steals” ideas from a number of projects:
 ### Limitations:
 
 - Assumes application is built on immutable data structures
-- Might not scale to high number of concurrent editors due to server bottleneck
+- Might not scale to high number of concurrent editors (conflict thrashing)
 - All theoretical, untested in Real World™
 
 ## Architecture
@@ -43,25 +43,19 @@ Each document state snapshot is represented as an immutable JSON-like object.
 
 ### Sync
 
-- Server state
-
+- **Server state**
   - Current revision ID (UUID)
   - Current snapshot
-
-- Client state
-
+- **Client state**
   - Last seen revision ID
   - Last seen server snapshot
-  - Current local snapshot (equal to server state if no local changes)
-
-- Server to Client messages
-
+  - Current local snapshot (often equal to server snapshot)
+- **Server to Client messages**
   - State
   - Patch
   - Accept
   - Reject
-
-- Client to Server messages
+- **Client to Server messages**
   - Patch
 
 1. Server sends revision ID + document state on client connect
@@ -99,9 +93,8 @@ Changes can then be synced back to the server (no server-side migration needed!)
 
 ### Three-way-merge
 
-Syncing is agnostic to data schema, making it very easy to reason about.
-
-The complexity is isolated to an application-specific three-way-merge function.
+Syncing is agnostic to data schema, making it very easy to reason about. The
+complexity is isolated to an application-specific three-way-merge function.
 
 The three-way-merge function merges three snapshots into one:
 
@@ -109,12 +102,11 @@ The three-way-merge function merges three snapshots into one:
 - Local snapshot
 - Server snapshot
 
-At a conceptual level, you can think of computing two diffs: base vs local and
-base vs server, then combining them.
+At a conceptual level, you can think of computing two diffs: **base vs local** and
+**base vs server**, then combining them.
 
 This can be done recursively in a JSON structure by operating at each object
-level. I built a standalone library doing this generically,
-[json-diff3](https://github.com/marcello3d/json-diff3).
+level. [json-diff3](https://github.com/marcello3d/json-diff3) can help.
 
 When a "true" conflict happens (e.g. two users change a string), there are a few
 options:
