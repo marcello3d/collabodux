@@ -1,0 +1,16 @@
+{
+  "name": "@collabodux/messages",
+  "version": "1.0.0",
+  "description": "types for messages between client and server",
+  "main": "lib/index.js",
+  "repository": "https://github.com/marcello3d/collabodux",
+  "author": "marcello@cellosoft.com",
+  "license": "Zlib",
+  "private": false,
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "3.3.3"
+  }
+}

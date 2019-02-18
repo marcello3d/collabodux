@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "lib",
+    "jsx": "react",
+    "isolatedModules": true,
+    "paths": {
+      "@collabodux/client": ["../client/src/index.ts"],
+      "@collabodux/messages": ["../messages/src/index.ts"],
+      "@collabodux/react-hooks": ["../react-hooks/src/index.ts"]
+    }
+  }
+}

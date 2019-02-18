@@ -3,23 +3,24 @@
     "target": "es2015",
     "allowJs": true,
     "skipLibCheck": true,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
     "moduleResolution": "node",
+    "sourceMap": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "isolatedModules": false,
     "noEmit": true,
     "jsx": "preserve",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ]
-  },
-  "include": [
-    "src"
-  ]
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "baseUrl": ".",
+    "rootDir": "./packages",
+    "paths": {
+      "@collabodux/*": ["./*/src"]
+    }
+  }
 }

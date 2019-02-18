@@ -1,0 +1,23 @@
+{
+  "name": "@collabodux/benchmark",
+  "version": "1.0.0",
+  "description": "collabodux benchmark",
+  "repository": "https://github.com/marcello3d/collabodux",
+  "author": "marcello@cellosoft.com",
+  "license": "Zlib",
+  "private": false,
+  "scripts": {
+    "benchmark": "ts-node -P ./tsconfig.server.json src/json-patch.ts",
+    "benchmark2": "ts-node -P ./tsconfig.server.json src/json-diff.ts"
+  },
+  "dependencies": {
+    "benchmark": "2.1.4",
+    "fast-json-patch": "2.0.7",
+    "immer": "2.0.0",
+    "json-touch-patch": "0.11.2",
+    "rfc6902": "3.0.1"
+  },
+  "devDependencies": {
+    "@types/benchmark": "1.0.31"
+  }
+}
