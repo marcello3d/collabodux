@@ -11,12 +11,14 @@
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
     "moduleResolution": "node",
+    "sourceMap": true,
     "resolveJsonModule": true,
     "isolatedModules": false,
     "noEmit": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "baseUrl": "./packages",
+    "baseUrl": ".",
+    "rootDir": "./packages",
     "paths": {
       "@collabodux/*": ["./*/src"]
     }
