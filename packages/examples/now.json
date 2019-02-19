@@ -2,8 +2,5 @@
   "version": 2,
   "name": "collabodux2-ui",
   "builds": [{ "src": "/dist/**/*", "use": "@now/static" }],
-  "routes": [
-    { "src": "^/static/(.*)", "dest": "/dist/static/$1" },
-    { "src": "^/(.*)", "dest": "/dist/index.html" }
-  ]
+  "routes": [{ "src": "^/(.*)", "dest": "/dist/$1" }]
 }
