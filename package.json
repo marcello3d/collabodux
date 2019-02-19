@@ -17,6 +17,10 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "packages/*/src/**/*.{ts,tsx}",
+      "!**/node_modules/**"
+    ],
     "transform": {
       "\\.css$": "<rootDir>/node_modules/jest-css-modules"
     },
