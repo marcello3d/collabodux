@@ -3,13 +3,10 @@
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-module.exports = {
+const shared = {
   devtool: 'source-map',
-  entry: {
-    vector: './src/example-vectors/index.tsx',
-  },
   output: {
-    filename: 'static/index.[hash:8].js',
+    filename: 'static/[name].[hash:8].js',
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js'],
@@ -30,13 +27,38 @@ module.exports = {
       },
     ],
   },
-  plugins: [
-    new HtmlWebpackPlugin({
-      title: 'Collabodux',
-      meta: {
-        viewport:
-          'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1',
-      },
-    }),
-  ],
 };
+
+const meta = {
+  viewport:
+    'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1',
+};
+
+module.exports = [
+  {
+    ...shared,
+    entry: {
+      todos: './src/example-todos/index.tsx',
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        title: 'Collabodux - todos',
+        filename: 'todos.html',
+        meta,
+      }),
+    ],
+  },
+  {
+    ...shared,
+    entry: {
+      vectors: './src/example-vectors/index.tsx',
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        title: 'Collabodux - vectors',
+        filename: 'vectors.html',
+        meta,
+      }),
+    ],
+  },
+];

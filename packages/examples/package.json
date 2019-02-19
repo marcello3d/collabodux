@@ -1,5 +1,5 @@
 {
-  "name": "@collabodux/example-vectors",
+  "name": "@collabodux/examples",
   "version": "0.1.0",
   "license": "Zlib",
   "dependencies": {
@@ -8,15 +8,12 @@
     "io-ts": "1.8.2",
     "io-ts-path": "1.1.1",
     "json-diff3": "1.1.1",
-    "json-touch-patch": "0.11.2",
     "material-color-hash": "0.1.6",
     "node-diff3": "1.0.0",
     "react": "16.8.2",
     "react-dom": "16.8.2",
-    "rfc6902": "3.0.1",
     "shallowequal": "1.1.0",
     "textarea-caret": "3.1.0",
-    "typescript-fsa": "3.0.0-beta-2",
     "uuid": "3.3.2"
   },
   "scripts": {

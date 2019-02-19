@@ -16,6 +16,12 @@
     "isolatedModules": false,
     "noEmit": true,
     "jsx": "react",
-    "lib": ["dom", "dom.iterable", "esnext"]
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "baseUrl": ".",
+    "paths": {
+      "@collabodux/client": ["packages/client/src/index.ts"],
+      "@collabodux/react-hooks": ["packages/react-hooks/src/index.ts"],
+      "@collabodux/messages": ["packages/messages/src/index.ts"]
+    }
   }
 }

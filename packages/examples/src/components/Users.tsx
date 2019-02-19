@@ -1,20 +1,20 @@
 import styles from './Users.module.css';
 import Focus from './Focus';
 import React from 'react';
-import { useDispatch } from '../dux/collabodux-fsa-hooks';
 import { reducer } from '../vectors/model/reducer';
-import { setUserName } from '../vectors/model/actions';
 import { useSession } from '@collabodux/react-hooks';
 import { useUserMap } from '../dux/use-user-map';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
+import { useMutate } from '../dux/mutator';
+import { setUserName } from '../dux/user-mutators';
 
 export default function Users<T extends ModelWithUsersType>({
   collabodux,
 }: {
   collabodux: Collabodux<T>;
 }) {
-  const proposeSetUserName = useDispatch(collabodux, reducer, setUserName);
+  const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);
   const userMap = useUserMap(collabodux);
 
@@ -32,10 +32,12 @@ export default function Users<T extends ModelWithUsersType>({
         onChange={
           currentSession
             ? ({ target }) =>
-                proposeSetUserName({
-                  session: currentSession,
-                  username: target.value,
-                })
+                mutate(
+                  setUserName({
+                    session: currentSession,
+                    username: target.value,
+                  }),
+                )
             : undefined
         }
       />

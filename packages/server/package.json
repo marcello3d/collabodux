@@ -1,6 +1,6 @@
 {
   "name": "@collabodux/server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "collabodux server",
   "main": "lib/index.js",
   "repository": "https://github.com/marcello3d/collabodux",
@@ -13,7 +13,7 @@
     "dev": "ts-node-dev src/index"
   },
   "dependencies": {
-    "@collabodux/messages": "1.0.0",
+    "@collabodux/messages": "0.1.0",
     "chalk": "2.4.2",
     "json-touch-patch": "0.11.2",
     "uuid": "3.3.2",

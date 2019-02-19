@@ -7,38 +7,8 @@ import { validateAndNormalize } from './model';
 describe('validateAndNormalize', () => {
   it('handles empty object', () => {
     expect(validateAndNormalize({})).toEqual({
-      longtext: '',
-      subtitle: '',
       title: '',
-      todos: [],
-      users: {},
-    });
-  });
-
-  it('handles non-empty object', () => {
-    expect(
-      validateAndNormalize({
-        title: 'title',
-        todos: [
-          {
-            done: false,
-            label: 'hi',
-          },
-          {},
-        ],
-      }),
-    ).toEqual({
-      longtext: '',
-      subtitle: '',
-      title: 'title',
-      todos: [
-        {
-          done: false,
-          key: '[mock-uuid]',
-          label: 'hi',
-        },
-        { done: false, key: '[mock-uuid]', label: '' },
-      ],
+      canvas: undefined,
       users: {},
     });
   });
