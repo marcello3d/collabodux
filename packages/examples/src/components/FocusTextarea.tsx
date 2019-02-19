@@ -7,7 +7,6 @@ import toMaterialStyle from 'material-color-hash';
 
 import styles from './Focus.module.css';
 import { updateInputValueMovingSelection } from '../utils/update-cursor-positions';
-import { reducer } from '../vectors/model/reducer';
 import { useMutate } from '../dux/mutator';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';

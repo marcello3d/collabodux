@@ -1,7 +1,6 @@
 import styles from './Users.module.css';
 import Focus from './Focus';
 import React from 'react';
-import { reducer } from '../vectors/model/reducer';
 import { useSession } from '@collabodux/react-hooks';
 import { useUserMap } from '../dux/use-user-map';
 import { Collabodux } from '@collabodux/client';
