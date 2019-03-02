@@ -9,6 +9,7 @@ type Undo<State> = {
 type UndoSet<State> = Undo<State>[];
 
 export class UndoManager<State extends JSONObject> {
+  private _snapshot = false;
   private _undos: UndoSet<State>[] = [];
   private _state: State;
   private _redos: UndoSet<State>[] = [];
@@ -17,6 +18,9 @@ export class UndoManager<State extends JSONObject> {
     this._state = initialState;
   }
 
+  /**
+   * Get current state
+   */
   get state(): State {
     return this._state;
   }
@@ -36,7 +40,18 @@ export class UndoManager<State extends JSONObject> {
     return { set, undo: set[set.length - 1] };
   }
 
+  /**
+   * Specify a new document based on local edits.
+   *
+   * These edits will be undo-able
+   *
+   * @param newState
+   */
   addLocalEdit(newState: State): void {
+    if (this._snapshot) {
+      this._undos.push([]);
+      this._snapshot = false;
+    }
     const { undo, set } = this.lastUndo;
     if (undo.complete) {
       set.push({
@@ -50,6 +65,15 @@ export class UndoManager<State extends JSONObject> {
     this._redos = [];
     this._state = newState;
   }
+
+  /**
+   * Specify a new document based on remote edits (or local edits you don't
+   * want to allow undoing, such as mode and selection changes).
+   *
+   * These edits will not be undo-able
+   *
+   * @param newState
+   */
   addRemoteEdit(newState: State): void {
     const { undo } = this.lastUndo;
     if (!undo.complete) {
@@ -58,14 +82,40 @@ export class UndoManager<State extends JSONObject> {
     }
     this._state = newState;
   }
+
+  /**
+   * Ends the current undo group (if there is one)
+   *
+   * Subsequent edits will be part of a new undo set
+   */
   snapshot(): void {
-    const { undo } = this.lastUndo;
-    undo.complete = true;
-    this._undos.push([]);
-  }
-  undo(): void {
     if (this._undos.length === 0) {
       return;
+    }
+    const { undo } = this.lastUndo;
+    undo.complete = true;
+    this._snapshot = true;
+  }
+
+  /**
+   * Is undo available
+   */
+  canUndo(): boolean {
+    return this._undos.length > 0;
+  }
+
+  /**
+   * Is redo available
+   */
+  canRedo(): boolean {
+    return this._redos.length > 0;
+  }
+  /**
+   * Undo the last undo set of local changes
+   */
+  undo(): boolean {
+    if (this._undos.length === 0) {
+      return false;
     }
     const { undo, set } = this.lastUndo;
     undo.complete = true;
@@ -75,15 +125,21 @@ export class UndoManager<State extends JSONObject> {
     }
     this._undos.pop();
     this._redos.push(set);
+    return true;
   }
-  redo(): void {
+
+  /**
+   * Redo the last undo (if any)
+   */
+  redo(): boolean {
     const set = this._redos.pop();
     if (!set) {
-      return;
+      return false;
     }
     for (const { before, after } of set) {
       this._state = this.merger(before, after, this._state);
     }
     this._undos.push(set);
+    return true;
   }
 }

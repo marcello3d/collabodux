@@ -15,23 +15,30 @@ describe('UndoManager', () => {
     expect(manager.state).toEqual({
       firstName: 'foo',
     });
-    manager.undo();
+    expect(manager.canUndo()).toBe(true);
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({});
   });
 
   it('double-undo one edit', () => {
     const manager = makeManager();
     manager.addLocalEdit({ firstName: 'foo' });
-    manager.undo();
-    manager.undo();
+    expect(manager.canUndo()).toBe(true);
+    expect(manager.undo()).toBe(true);
+    expect(manager.canUndo()).toBe(false);
+    expect(manager.undo()).toBe(false);
     expect(manager.state).toEqual({});
   });
 
   it('undo-redo one local edit', () => {
     const manager = makeManager();
     manager.addLocalEdit({ firstName: 'foo' });
-    manager.undo();
-    manager.redo();
+    expect(manager.canUndo()).toBe(true);
+    expect(manager.undo()).toBe(true);
+    expect(manager.canUndo()).toBe(false);
+    expect(manager.canRedo()).toBe(true);
+    expect(manager.redo()).toBe(true);
+    expect(manager.canRedo()).toBe(false);
     expect(manager.state).toEqual({
       firstName: 'foo',
     });
@@ -40,9 +47,9 @@ describe('UndoManager', () => {
   it('undo-double-redo one local edit', () => {
     const manager = makeManager();
     manager.addLocalEdit({ firstName: 'foo' });
-    manager.undo();
-    manager.redo();
-    manager.redo();
+    expect(manager.undo()).toBe(true);
+    expect(manager.redo()).toBe(true);
+    expect(manager.redo()).toBe(false);
     expect(manager.state).toEqual({
       firstName: 'foo',
     });
@@ -50,7 +57,7 @@ describe('UndoManager', () => {
 
   it('redo with no edits', () => {
     const manager = makeManager();
-    manager.redo();
+    expect(manager.redo()).toBe(false);
     expect(manager.state).toEqual({});
   });
 
@@ -61,7 +68,7 @@ describe('UndoManager', () => {
       firstName: 'foo',
       lastName: 'foo',
     });
-    manager.undo();
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({});
   });
 
@@ -75,7 +82,55 @@ describe('UndoManager', () => {
       firstName: 'foo',
       lastName: 'foo',
     });
-    manager.undo();
+    expect(manager.undo()).toBe(true);
+    expect(manager.state).toEqual({
+      firstName: 'foo',
+    });
+  });
+
+  it('undo local edit after snapshot', () => {
+    const manager = makeManager();
+    manager.addLocalEdit({
+      firstName: 'foo',
+    });
+    manager.snapshot();
+    expect(manager.undo()).toBe(true);
+    expect(manager.state).toEqual({});
+  });
+
+  it('undo local edit after snapshot', () => {
+    const manager = makeManager();
+    manager.addLocalEdit({
+      firstName: 'foo',
+    });
+    manager.snapshot();
+    expect(manager.undo()).toBe(true);
+    expect(manager.state).toEqual({});
+  });
+
+  it('initial snapshot', () => {
+    const manager = makeManager();
+    manager.snapshot();
+    manager.addLocalEdit({
+      firstName: 'foo',
+      lastName: 'foo',
+    });
+    expect(manager.undo()).toBe(true);
+    expect(manager.undo()).toBe(false);
+    expect(manager.state).toEqual({});
+  });
+  it('double snapshot', () => {
+    const manager = makeManager();
+    manager.addLocalEdit({
+      firstName: 'foo',
+    });
+    manager.snapshot();
+    manager.snapshot();
+    manager.addLocalEdit({
+      firstName: 'foo',
+      lastName: 'foo',
+    });
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({
       firstName: 'foo',
     });
@@ -91,11 +146,11 @@ describe('UndoManager', () => {
       firstName: 'foo',
       lastName: 'foo',
     });
-    manager.undo();
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({
       firstName: 'foo',
     });
-    manager.redo();
+    expect(manager.redo()).toBe(true);
     expect(manager.state).toEqual({
       firstName: 'foo',
       lastName: 'foo',
@@ -109,7 +164,7 @@ describe('UndoManager', () => {
       firstName: 'foo',
       lastName: 'foo',
     });
-    manager.undo();
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({
       lastName: 'foo',
     });
@@ -122,8 +177,8 @@ describe('UndoManager', () => {
       firstName: 'foo',
       lastName: 'foo',
     });
-    manager.undo();
-    manager.redo();
+    expect(manager.undo()).toBe(true);
+    expect(manager.redo()).toBe(true);
     expect(manager.state).toEqual({
       firstName: 'foo',
       lastName: 'foo',
@@ -142,7 +197,7 @@ describe('UndoManager', () => {
       lastName: 'foo',
     });
 
-    manager.undo();
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({
       lastName: 'foo',
     });
@@ -159,7 +214,7 @@ describe('UndoManager', () => {
       firstName: 'foobar',
       lastName: 'foo',
     });
-    manager.undo();
+    expect(manager.undo()).toBe(true);
     expect(manager.state).toEqual({
       lastName: 'foo',
     });
