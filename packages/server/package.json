@@ -9,8 +9,8 @@
   "private": false,
   "scripts": {
     "build": "tsc",
-    "start": "node .",
-    "dev": "ts-node-dev src/index"
+    "now-start": "node .",
+    "start": "ts-node-dev -r tsconfig-paths/register src/index"
   },
   "dependencies": {
     "@collabodux/messages": "0.1.0",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/ws": "6.0.1",
     "ts-node": "8.0.2",
-    "ts-node-dev": "1.0.0-pre.32"
+    "ts-node-dev": "1.0.0-pre.32",
+    "tsconfig-paths": "3.8.0"
   }
 }

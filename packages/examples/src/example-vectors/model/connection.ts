@@ -4,8 +4,8 @@ import { addUserManagement } from '../../dux/user-cleanup';
 import { getMerger } from '../../dux/io-ts-merge';
 
 export const connection = new Connection(
-  // new WebSocket(`ws://${location.hostname}:4000`),
-  `wss://collabodux2.now.sh:443`,
+  `ws://${location.hostname}:4000`,
+  // `wss://collabodux2.now.sh:443`,
 );
 
 export const collabodux = new Collabodux(
