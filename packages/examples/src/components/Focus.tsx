@@ -32,6 +32,7 @@ export default function Focus<T extends ModelWithUsersType>({
           session: currentSession,
           focus: focusId,
         }),
+        false,
       );
     }
   }

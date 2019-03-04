@@ -44,6 +44,7 @@ export default function FocusInput<T extends ModelWithUsersType>({
               ? undefined
               : [selectionStart, selectionEnd],
         }),
+        false,
       );
     }
   }

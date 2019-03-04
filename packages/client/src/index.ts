@@ -9,6 +9,7 @@ import {
 import { JSONObject } from 'json-diff3';
 import { Subscriber, SubscriberChannel } from './subscriber-channel';
 import { PatchStateManager } from './patch-state-manager';
+import { UndoManager } from './undo-manager';
 
 export type Validate<State, RawState = JSONObject> = (raw?: RawState) => State;
 export type Merger<State> = (base: State, local: State, remote: State) => State;
@@ -26,6 +27,7 @@ export class Collabodux<
 > {
   private _sendingChanges = false;
   private state: PatchStateManager<State, RawState>;
+  private undos: UndoManager<State>;
 
   private _localStateSubscribers = new SubscriberChannel<State>();
   private _sessionsStateSubscribers = new SubscriberChannel<SessionData>();
@@ -42,6 +44,7 @@ export class Collabodux<
     this.connection.onResponseMessage = this._onResponseMessage;
     this.connection.onClose = this._onClose;
     this.state = new PatchStateManager(normalize, mergeState);
+    this.undos = new UndoManager(mergeState);
   }
   get ready(): boolean {
     return this.state.hasRemote;
@@ -70,13 +73,38 @@ export class Collabodux<
     return this._sessionsStateSubscribers.subscribe(subscriber);
   }
 
+  get hasUndo(): boolean {
+    return this.undos.hasUndo;
+  }
+
+  get hasRedo(): boolean {
+    return this.undos.hasRedo;
+  }
+
+  undo() {
+    if (this.state.setLocal(this.undos.undo(this.state.local))) {
+      this._localStateChanged();
+    }
+  }
+
+  redo() {
+    if (this.state.setLocal(this.undos.redo(this.state.local))) {
+      this._localStateChanged();
+    }
+  }
+
   private _sessionData(): SessionData {
     return {
       session: this._session,
       sessions: this._sessions,
     };
   }
-  setLocalState(newState: State) {
+
+  setLocalState(newState: State, undoable: boolean = true): void {
+    if (undoable) {
+      this.undos.snapshot();
+      this.undos.trackEdit(this.state.local, newState);
+    }
     if (this.state.setLocal(newState)) {
       this._localStateChanged();
     }

@@ -43,6 +43,7 @@ export function addUserManagement<T extends ModelWithUsersType>(
             session: lastSession,
             username: randomAnimalName(),
           }),
+          false,
         );
       }
     }

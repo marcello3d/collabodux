@@ -62,3 +62,30 @@ export function useMappedLocalState<State extends JSONObject, Action, T>(
   );
   return partial;
 }
+
+type UndoRedoFunctions = {
+  undo?: () => void;
+  redo?: () => void;
+};
+
+export function useUndoRedo<State extends JSONObject>(
+  client: Collabodux<State>,
+): UndoRedoFunctions {
+  const [result, setResult] = useState<UndoRedoFunctions>({});
+  useEffect(
+    () =>
+      client.subscribeLocalState(() => {
+        if (
+          Boolean(result.undo) !== client.hasUndo ||
+          Boolean(result.redo) !== client.hasRedo
+        ) {
+          setResult({
+            undo: client.hasUndo ? () => client.undo() : undefined,
+            redo: client.hasRedo ? () => client.redo() : undefined,
+          });
+        }
+      }),
+    [client],
+  );
+  return result;
+}

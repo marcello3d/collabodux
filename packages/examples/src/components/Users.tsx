@@ -18,9 +18,10 @@ export default function Users<T extends ModelWithUsersType>({
   const userMap = useUserMap(collabodux);
 
   const currentUsername =
-    currentSession && userMap[currentSession]
-      ? userMap[currentSession].username
-      : '';
+    (currentSession &&
+      userMap[currentSession] &&
+      userMap[currentSession].username) ||
+    '';
   return (
     <nav className={styles.root}>
       <input

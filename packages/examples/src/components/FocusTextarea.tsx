@@ -44,6 +44,7 @@ export default function FocusTextarea<T extends ModelWithUsersType>({
               ? undefined
               : [selectionStart, selectionEnd],
         }),
+        false,
       );
     }
   }

@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './App.module.css';
-import { useMappedLocalState } from '@collabodux/react-hooks';
+import { useMappedLocalState, useUndoRedo } from '@collabodux/react-hooks';
 import {
   addTodo,
   moveTodo,
@@ -29,6 +29,7 @@ export function App() {
       todos,
     }),
   );
+  const { undo, redo } = useUndoRedo(collabodux);
 
   return (
     <div className={styles.root}>
@@ -37,6 +38,14 @@ export function App() {
       </header>
       <Users collabodux={collabodux} />
       <main>
+        <div>
+          <button onClick={undo} disabled={!undo}>
+            Undo
+          </button>
+          <button onClick={redo} disabled={!redo}>
+            Redo
+          </button>
+        </div>
         <div>
           <label>
             Title:{' '}

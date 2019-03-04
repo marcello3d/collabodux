@@ -4,6 +4,7 @@ import produce, { Draft } from 'immer';
 
 export type Mutate<State extends JSONObject> = (
   mutator: (state: Draft<State>) => void,
+  undoable?: boolean,
 ) => void;
 export type Mutator<State extends JSONObject> = (state: Draft<State>) => void;
 export type PayloadMutator<State extends JSONObject, Payload> = (
@@ -14,8 +15,9 @@ export type PayloadMutator<State extends JSONObject, Payload> = (
 export function useMutate<State extends JSONObject>(
   collabodux: Collabodux<State>,
 ): Mutate<State> {
-  return (mutator: Mutator<State>) =>
-    collabodux.setLocalState(produce(collabodux.localState, mutator));
+  return (mutator: Mutator<State>, undoable: boolean = true) => {
+    collabodux.setLocalState(produce(collabodux.localState, mutator), undoable);
+  };
 }
 
 export type MutatorCreator<State extends JSONObject, Payload> = (
