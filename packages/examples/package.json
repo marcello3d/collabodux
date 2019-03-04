@@ -17,7 +17,7 @@
     "uuid": "3.3.2"
   },
   "scripts": {
-    "start": "webpack-dev-server --mode=development",
+    "start": "webpack-dev-server --mode=development --content-base public/",
     "deploy-client": "yarn build && now -A now.client.json",
     "build": "webpack --mode=production"
   },
