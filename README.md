@@ -9,6 +9,13 @@ Collabodux is an idea and experimental library for realtime collaboration on
 JSON structures. It is a client-oriented, declarative-functional approach to
 shared application state.
 
+## How to run examples
+
+1. `yarn` to install everything
+2. `cd packages/server && yarn start` to run server
+3. `cd packages/examples && yarn start` to build and run examples as server
+4. Open [http://localhost:8080/](http://localhost:8080/) in browser
+
 ## Background
 
 It “steals” ideas from a number of projects:
@@ -124,15 +131,13 @@ You could choose different options for different fields.
 
 ### Per-User Undo
 
-_Work-in-progress brainstorm:_
-
 If a user makes an edit from snapshot A to snapshot B and we subsequently
 receive server edits (snapshot C). To undo only our own edit we effectively
 want to rebase C on A.
 
 Can we use the same three-way-merge with A and C using B as the base?
 
-To be continued...
+Yep!
 
 # License
 

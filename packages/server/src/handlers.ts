@@ -13,9 +13,11 @@ import {
 import { formatAddress, WSCloseEvent, WSMessageEvent } from './wss';
 import * as http from 'http';
 
+const randomId = () => uuidv4().replace(/-/g, '');
+
 export default class ServerHandler {
-  private state: any = {};
-  private vtag: string = uuidv4();
+  private state: any = undefined;
+  private vtag: string = 'ROOT';
   private sessions = new Map<WebSocket, string>();
 
   constructor(private wss: Server) {}
@@ -42,7 +44,7 @@ export default class ServerHandler {
 
   onConnection = (socket: WebSocket, request: http.IncomingMessage) => {
     // TODO: multiple documents by using request.url
-    const session = uuidv4();
+    const session = randomId();
     console.log(
       `${chalk.gray(`[${session}]`)} ${chalk.green(
         `New connection from ${formatAddress(request.socket.address())}`,
@@ -144,7 +146,7 @@ export default class ServerHandler {
             reason: e.toString(),
           });
         }
-        this.vtag = uuidv4();
+        this.vtag = randomId();
         this.send(socket, {
           type: MessageType.accept,
           req,

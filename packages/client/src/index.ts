@@ -6,14 +6,13 @@ import {
   ResponseMessage,
   StateMessage,
 } from '@collabodux/messages';
-import { createPatch } from 'rfc6902';
-import applyPatch from 'json-touch-patch';
-import { diff3, Handler, JSONObject, JSONValue, jsonEqual } from 'json-diff3';
-import { PromiseContainer } from './promise-container';
+import { JSONObject } from 'json-diff3';
 import { Subscriber, SubscriberChannel } from './subscriber-channel';
+import { PatchStateManager } from './patch-state-manager';
 
-export type NormalizeJsonToState<State> = (json: JSONValue) => State;
+export type Validate<State, RawState = JSONObject> = (raw?: RawState) => State;
 export type Merger<State> = (base: State, local: State, remote: State) => State;
+
 export type SessionData = {
   session: string | undefined;
   sessions: string[];
@@ -21,14 +20,12 @@ export type SessionData = {
 
 export { Connection };
 
-export class Collabodux<State extends JSONObject> {
-  private pendingStateChanges = false;
-  private sendingChanges = false;
-  private _localState!: State;
-
-  private _serverState: State | undefined = undefined;
-  private _readyPromise: PromiseContainer<void> | undefined = undefined;
-  private _vtag!: string;
+export class Collabodux<
+  State extends RawState,
+  RawState extends JSONObject = JSONObject
+> {
+  private _sendingChanges = false;
+  private state: PatchStateManager<State, RawState>;
 
   private _localStateSubscribers = new SubscriberChannel<State>();
   private _sessionsStateSubscribers = new SubscriberChannel<SessionData>();
@@ -38,55 +35,38 @@ export class Collabodux<State extends JSONObject> {
 
   constructor(
     private connection: Connection,
-    private normalize: NormalizeJsonToState<State>,
-    private merger: Merger<State>,
+    normalize: Validate<State, RawState>,
+    mergeState: Merger<State>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this._onResponseMessage;
     this.connection.onClose = this._onClose;
-    this._readyPromise = new PromiseContainer();
+    this.state = new PatchStateManager(normalize, mergeState);
   }
   get ready(): boolean {
-    return !this._readyPromise;
+    return this.state.hasRemote;
   }
-  private throwIfNotReady() {
-    if (this._readyPromise) {
-      throw this._readyPromise.promise;
-    }
-  }
-
-  private _onClose(): void {
-    if (!this._readyPromise) {
-      this._readyPromise = new PromiseContainer();
-    }
-  }
+  private _onClose(): void {}
 
   get localState(): State {
-    this.throwIfNotReady();
-    return this._localState;
+    return this.state.local;
   }
 
   get session(): string | undefined {
-    this.throwIfNotReady();
     return this._session;
   }
 
   get sessions(): string[] {
-    this.throwIfNotReady();
     return this._sessions;
   }
 
   subscribeLocalState(subscriber: Subscriber<State>): () => void {
-    if (this.ready) {
-      subscriber(this._localState);
-    }
+    subscriber(this.state.local);
     return this._localStateSubscribers.subscribe(subscriber);
   }
 
   subscribeSessions(subscriber: Subscriber<SessionData>): () => void {
-    if (this.ready) {
-      subscriber(this._sessionData());
-    }
+    subscriber(this._sessionData());
     return this._sessionsStateSubscribers.subscribe(subscriber);
   }
 
@@ -97,30 +77,12 @@ export class Collabodux<State extends JSONObject> {
     };
   }
   setLocalState(newState: State) {
-    if (!this.ready) {
-      throw new Error('Not ready');
+    if (this.state.setLocal(newState)) {
+      this._localStateChanged();
     }
-    this._setLocalState(newState);
-    this._sendLocalState();
   }
-  _setLocalState(newState: State) {
-    if (jsonEqual(newState, this._localState)) {
-      return;
-    }
-    this._localState = newState;
-    this.pendingStateChanges = true;
-    this.sendPendingChanges();
-  }
-
-  private _sendLocalState() {
-    this._localStateSubscribers.send(this._localState!);
-  }
-
-  private _setSessionState() {
-    this._sessions = Array.from(this._sessionSet).sort();
-  }
-
   private _sendSessionState() {
+    this._sessions = Array.from(this._sessionSet).sort();
     this._sessionsStateSubscribers.send(this._sessionData());
   }
 
@@ -136,13 +98,11 @@ export class Collabodux<State extends JSONObject> {
 
       case MessageType.join:
         this._sessionSet.add(message.session);
-        this._setSessionState();
         this._sendSessionState();
         break;
 
       case MessageType.leave:
         this._sessionSet.delete(message.session);
-        this._setSessionState();
         this._sendSessionState();
         break;
 
@@ -158,70 +118,40 @@ export class Collabodux<State extends JSONObject> {
     sessions,
     vtag,
   }: StateMessage): void {
-    if (!this._readyPromise) {
-      if (this._serverState === undefined) {
-        throw new Error('unexpected StateMessage');
-      }
-      this.mergeNewServerState(this._serverState, state, vtag);
-    } else {
-      this._serverState = state;
-      this._vtag = vtag;
-      this._setLocalState(this.normalize(state));
-    }
+    const changed = this.state.mergeRemote(state, vtag);
     this._session = session;
     this._sessionSet = new Set(sessions);
-    this._setSessionState();
-
-    // Notify everyone after everything's been set
-    if (this._readyPromise) {
-      this._readyPromise.resolve();
-      this._readyPromise = undefined;
-    }
-    this._sendLocalState();
     this._sendSessionState();
+    if (changed) {
+      this._localStateChanged();
+    }
   }
 
   private onChangeMessage({ patches, vtag }: ChangeMessage): void {
-    if (this._serverState === undefined) {
-      throw new Error('ChangeMessage without StateMessage');
-    }
-    const newServerState = applyPatch(this._serverState, patches);
-    this.mergeNewServerState(this._serverState, newServerState, vtag);
-    this._sendLocalState();
-  }
-
-  private mergeNewServerState(
-    baseState: State,
-    newServerState: State,
-    vtag: string,
-  ) {
-    const mergedState = this.merger(
-      baseState,
-      this._localState,
-      newServerState,
-    );
-    this._serverState = newServerState;
-    this._vtag = vtag;
-    this._setLocalState(this.normalize(mergedState));
-  }
-
-  private sendPendingChanges() {
-    if (!this.sendingChanges && this.pendingStateChanges) {
-      this.sendingChanges = true;
-      setTimeout(this.sendNextPendingChange, this.bufferTimeMs);
+    if (this.state.patchRemote(patches, vtag)) {
+      this._localStateChanged();
     }
   }
+  private _localStateChanged() {
+    if (!this._sendingChanges) {
+      this._sendingChanges = true;
+      setTimeout(this._sendNextPendingChange, this.bufferTimeMs);
+    }
+    this._localStateSubscribers.send(this.state.local);
+  }
 
-  private sendNextPendingChange = async (): Promise<void> => {
-    this.pendingStateChanges = false;
-    this.sendingChanges = false;
-    const newServerState = this._localState;
-    const patches = createPatch(this._serverState, newServerState);
+  private _sendNextPendingChange = async (): Promise<void> => {
+    this._sendingChanges = false;
+    const local = this.state.local;
+    const patches = this.state.getLocalPatches();
     if (patches.length === 0) {
       // nothing changed
       return;
     }
-    const response = await this.connection.requestChange(this._vtag, patches);
+    const response = await this.connection.requestChange(
+      this.state.vtag,
+      patches,
+    );
     switch (response.type) {
       case MessageType.reject:
         console.debug(`Change rejected (${response.code})`);
@@ -240,12 +170,8 @@ export class Collabodux<State extends JSONObject> {
         break;
 
       case MessageType.accept:
-        if (this._serverState === undefined) {
-          throw new Error('unexpected state');
-        }
-        this._serverState = newServerState;
-        this._vtag = response.vtag;
-        this.sendPendingChanges();
+        this.state.acceptLocalChanges(local, response.vtag);
+        this._localStateChanged();
         break;
     }
   };
