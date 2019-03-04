@@ -13,6 +13,7 @@ import { PromiseContainer } from './promise-container';
 import { Subscriber, SubscriberChannel } from './subscriber-channel';
 
 export type NormalizeJsonToState<State> = (json: JSONValue) => State;
+export type Merger<State> = (base: State, local: State, remote: State) => State;
 export type SessionData = {
   session: string | undefined;
   sessions: string[];
@@ -25,7 +26,7 @@ export class Collabodux<State extends JSONObject> {
   private sendingChanges = false;
   private _localState!: State;
 
-  private _serverState: JSONObject | undefined = undefined;
+  private _serverState: State | undefined = undefined;
   private _readyPromise: PromiseContainer<void> | undefined = undefined;
   private _vtag!: string;
 
@@ -38,7 +39,7 @@ export class Collabodux<State extends JSONObject> {
   constructor(
     private connection: Connection,
     private normalize: NormalizeJsonToState<State>,
-    private handler: Partial<Handler> = {},
+    private merger: Merger<State>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this._onResponseMessage;
@@ -161,7 +162,7 @@ export class Collabodux<State extends JSONObject> {
       if (this._serverState === undefined) {
         throw new Error('unexpected StateMessage');
       }
-      this.mergeNewServerState(state, vtag);
+      this.mergeNewServerState(this._serverState, state, vtag);
     } else {
       this._serverState = state;
       this._vtag = vtag;
@@ -185,20 +186,22 @@ export class Collabodux<State extends JSONObject> {
       throw new Error('ChangeMessage without StateMessage');
     }
     const newServerState = applyPatch(this._serverState, patches);
-    this.mergeNewServerState(newServerState, vtag);
+    this.mergeNewServerState(this._serverState, newServerState, vtag);
     this._sendLocalState();
   }
 
-  private mergeNewServerState(newServerState: JSONObject, vtag: string) {
-    const baseServerState = this._serverState;
+  private mergeNewServerState(
+    baseState: State,
+    newServerState: State,
+    vtag: string,
+  ) {
+    const mergedState = this.merger(
+      baseState,
+      this._localState,
+      newServerState,
+    );
     this._serverState = newServerState;
     this._vtag = vtag;
-    const mergedState = diff3(
-      baseServerState,
-      this._serverState,
-      this._localState,
-      this.handler,
-    );
     this._setLocalState(this.normalize(mergedState));
   }
 
