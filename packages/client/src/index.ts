@@ -8,18 +8,17 @@ import {
 } from '@collabodux/messages';
 import { JSONObject } from 'json-diff3';
 import { Subscriber, SubscriberChannel } from './subscriber-channel';
-import { Merger, PatchStateManager } from './patch-state-manager';
+import { PatchStateManager } from './patch-state-manager';
 
-export type RemoteToLocal<Local extends Remote, Remote extends JSONObject> = (
-  remote?: Remote,
-) => Local;
+export type Validate<State, RawState = JSONObject> = (raw?: RawState) => State;
+export type Merger<State> = (base: State, local: State, remote: State) => State;
 
 export type SessionData = {
   session: string | undefined;
   sessions: string[];
 };
 
-export { Connection, Merger };
+export { Connection };
 
 export class Collabodux<
   State extends RawState,
@@ -36,16 +35,16 @@ export class Collabodux<
 
   constructor(
     private connection: Connection,
-    private normalize: RemoteToLocal<State, RawState>,
-    mergeState: Merger<State, RawState>,
+    normalize: Validate<State, RawState>,
+    mergeState: Merger<State>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this._onResponseMessage;
     this.connection.onClose = this._onClose;
-    this.state = new PatchStateManager(mergeState, normalize());
+    this.state = new PatchStateManager(normalize, mergeState);
   }
   get ready(): boolean {
-    return this.state.remote !== undefined;
+    return this.state.hasRemote;
   }
   private _onClose(): void {}
 
@@ -119,7 +118,7 @@ export class Collabodux<
     sessions,
     vtag,
   }: StateMessage): void {
-    const changed = this.state.setRemote(state, vtag);
+    const changed = this.state.mergeRemote(state, vtag);
     this._session = session;
     this._sessionSet = new Set(sessions);
     this._sendSessionState();
@@ -143,6 +142,7 @@ export class Collabodux<
 
   private _sendNextPendingChange = async (): Promise<void> => {
     this._sendingChanges = false;
+    const local = this.state.local;
     const patches = this.state.getLocalPatches();
     if (patches.length === 0) {
       // nothing changed
@@ -170,9 +170,8 @@ export class Collabodux<
         break;
 
       case MessageType.accept:
-        if (this.state.patchRemote(patches, response.vtag)) {
-          this._localStateChanged();
-        }
+        this.state.acceptLocalChanges(local, response.vtag);
+        this._localStateChanged();
         break;
     }
   };

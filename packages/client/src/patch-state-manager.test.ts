@@ -3,8 +3,8 @@ import { diff3, JSONObject } from 'json-diff3';
 
 function makeManager() {
   return new PatchStateManager<JSONObject, JSONObject>(
+    (raw = {}) => raw,
     (base = {}, local, remote) => diff3(base, local, remote) as JSONObject,
-    {},
   );
 }
 describe('PatchStateManager', () => {
@@ -26,15 +26,23 @@ describe('PatchStateManager', () => {
     ]);
   });
 
-  it('setRemote', () => {
+  it('mergeRemote', () => {
     const manager = makeManager();
     expect(manager.vtag).toEqual('ROOT');
-    expect(manager.setRemote({ last: 'world' }, '1')).toBe(true);
-    expect(manager.remote).toEqual({ last: 'world' });
+    expect(manager.hasRemote).toEqual(false);
+    expect(manager.mergeRemote({ last: 'world' }, '1')).toBe(true);
+    expect(manager.hasRemote).toEqual(true);
     expect(manager.vtag).toEqual('1');
     expect(manager.local).toEqual({
       last: 'world',
     });
+  });
+
+  it('acceptLocalChanges', () => {
+    const manager = makeManager();
+    manager.setLocal({ first: 'hello' });
+    manager.acceptLocalChanges({ first: 'hello' }, '1');
+    expect(manager.getLocalPatches()).toEqual([]);
   });
 
   it('patchRemote', () => {
@@ -42,7 +50,6 @@ describe('PatchStateManager', () => {
     expect(
       manager.patchRemote([{ op: 'replace', path: '', value: 'world' }], '1'),
     ).toBe(true);
-    expect(manager.remote).toEqual('world');
   });
 
   it('patchRemote and merge', () => {
@@ -62,7 +69,6 @@ describe('PatchStateManager', () => {
     expect(manager.getLocalPatches()).toEqual([
       { op: 'add', path: '/first', value: 'hello' },
     ]);
-    expect(manager.remote).toEqual({ last: 'world' });
   });
 
   it('patchRemote throws when patch results in undefined', () => {

@@ -9,7 +9,7 @@ export function getMerger<State extends JSONObject>(
 ) {
   return (base, local, remote) =>
     validateAndNormalize(
-      diff3(validateAndNormalize(base), local, validateAndNormalize(remote), {
+      diff3(base, local, remote, {
         handleMerge(base, left, right, path): JSONValue {
           const type = IoPaths.type(stateType, path);
           console.log(
