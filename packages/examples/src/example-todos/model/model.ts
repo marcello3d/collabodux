@@ -3,7 +3,7 @@ import { failure } from 'io-ts/lib/PathReporter';
 import { defaulted, mergable } from '../../dux/io-ts-util';
 import { JSONObject } from 'json-diff3';
 import uuid from 'uuid/v4';
-import { diff3MergeStrings } from '../../utils/merge-edits';
+import { diff3MergeStrings } from '../../utils/string-diff3';
 import { usersPartialType } from '../../dux/user-model';
 
 const mergableDefaultEmptyString = mergable(

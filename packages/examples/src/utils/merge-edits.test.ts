@@ -2,7 +2,7 @@ import {
   diff3MergeStringRanges,
   diff3MergeStrings,
   sliceRanges,
-} from './merge-edits';
+} from './string-diff3';
 
 describe('diff3MergeStrings', () => {
   it('works with one-sided change', () => {
@@ -31,13 +31,34 @@ describe('diff3MergeStrings', () => {
       'two',
     );
   });
-  it('merges conflicting edits 1', () => {
+  it('merges replace and add', () => {
     expect(diff3MergeStrings('two', 'one', 'two three')).toEqual('one three');
   });
-  it('merges semi non-conflicting adds', () => {
-    // This might seem counter-intuitive, but it works
-    expect(diff3MergeStrings('', 'subtitle1111', 'subtitle2222')).toEqual(
-      'subtitle1111subtitle2222',
+  it('merges two full replaces', () => {
+    expect(diff3MergeStrings('foo', 'bar', 'buh')).toEqual('barbuh');
+  });
+  it('merges add and delete back', () => {
+    expect(diff3MergeStrings('one two', 'one', 'one two three')).toEqual(
+      'one three',
+    );
+    expect(diff3MergeStrings('one two', 'one two three', 'one')).toEqual(
+      'one three',
+    );
+  });
+  it('merges add and delete front', () => {
+    expect(diff3MergeStrings('one two', 'two', 'three one two')).toEqual(
+      'three two',
+    );
+    expect(diff3MergeStrings('one two', 'three one two', 'two')).toEqual(
+      'three two',
+    );
+  });
+  it('merges add and delete front and back', () => {
+    expect(diff3MergeStrings('one two', 'two', 'three one two three')).toEqual(
+      'three two three',
+    );
+    expect(diff3MergeStrings('one two', 'three one two three', 'two')).toEqual(
+      'three two three',
     );
   });
 });
