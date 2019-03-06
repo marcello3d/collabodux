@@ -22,7 +22,7 @@ export default function FocusInput<T extends ModelWithUsersType>({
   focusId: string;
   value: string;
   textarea?: boolean;
-  collabodux: Collabodux<T>;
+  collabodux: Collabodux<T, any, any>;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);

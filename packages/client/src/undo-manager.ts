@@ -1,78 +1,85 @@
 import { JSONObject } from 'json-diff3';
+import { Merger } from './index';
 
-type Undo<State> = {
-  before: State;
-  after: State;
+export type Undo<State, Metadata> = {
+  edits: {
+    before: State;
+    after: State;
+  }[];
+  count: number;
+  metadata: Metadata;
 };
-type UndoSet<State> = Undo<State>[];
-type UndoMerger<State> = (base: State, local: State, remote: State) => State;
 
-export class UndoManager<State extends JSONObject> {
-  private _snapshot = false;
-  private _undos: UndoSet<State>[] = [];
-  private _redos: UndoSet<State>[] = [];
+export type UndoMerger<State, Metadata> = (
+  undo: Undo<State, Metadata>,
+  metadata: Metadata,
+) => boolean;
 
-  constructor(private readonly mergeStates: UndoMerger<State>) {}
+export class UndoManager<State extends JSONObject, Metadata = undefined> {
+  private _undos: Undo<State, Metadata>[] = [];
+  private _redos: Undo<State, Metadata>[] = [];
+
+  constructor(
+    private readonly mergeStates: Merger<State>,
+    private readonly mergeEdit: UndoMerger<State, Metadata> = () => true,
+  ) {}
 
   /**
    * Track edit in current undo set
    */
-  trackEdit(before: State, after: State): State {
+  trackEdit(before: State, after: State, metadata: Metadata): State {
     const undos = this._undos;
-    if (undos.length === 0 || this._snapshot) {
-      undos.push([]);
-      this._snapshot = false;
+    let undo = undos[undos.length - 1];
+    if (undos.length === 0 || !this.mergeEdit(undo, metadata)) {
+      undo = {
+        edits: [],
+        count: 0,
+        metadata,
+      };
+      undos.push(undo);
     }
-    const set = undos[undos.length - 1];
-    const undo = set[set.length - 1];
-    if (undo && undo.after === before) {
-      // Optimization, if multiple edits happen in sequence, we can use
+    const { edits } = undo;
+    const lastEdit = edits[edits.length - 1];
+    if (lastEdit && lastEdit.after === before) {
+      // Optimization: if multiple edits happen in sequence, we can use
       // the first "before" and last "after"
-      undo.after = after;
+      lastEdit.after = after;
     } else {
-      set.push({
+      edits.push({
         before,
         after,
       });
     }
+    undo.count++;
     this._redos = [];
     return after;
   }
 
   /**
-   * Ends the current undo group (if there is one)
-   *
-   * Subsequent edits will be part of a new undo set
-   */
-  snapshot(): void {
-    this._snapshot = true;
-  }
-
-  /**
    * Is undo available
    */
-  get hasUndo(): boolean {
-    return this._undos.length > 0;
+  get nextUndo(): Undo<State, Metadata> | undefined {
+    return this._undos[this._undos.length - 1];
   }
 
   /**
    * Is redo available
    */
-  get hasRedo(): boolean {
-    return this._redos.length > 0;
+  get nextRedo(): Undo<State, Metadata> | undefined {
+    return this._redos[this._redos.length - 1];
   }
 
   /**
    * Undo the last undo set of local changes
    */
   undo(state: State): State {
-    const set = this._undos.pop();
-    if (set) {
-      for (let i = set.length; --i >= 0; ) {
-        const { before, after } = set[i];
+    const undo = this._undos.pop();
+    if (undo) {
+      for (let i = undo.edits.length; --i >= 0; ) {
+        const { before, after } = undo.edits[i];
         state = this.mergeStates(after, before, state);
       }
-      this._redos.push(set);
+      this._redos.push(undo);
     }
     return state;
   }
@@ -81,12 +88,12 @@ export class UndoManager<State extends JSONObject> {
    * Redo the last undo (if any)
    */
   redo(state: State): State {
-    const set = this._redos.pop();
-    if (set) {
-      for (const { before, after } of set) {
+    const redo = this._redos.pop();
+    if (redo) {
+      for (const { before, after } of redo.edits) {
         state = this.mergeStates(before, after, state);
       }
-      this._undos.push(set);
+      this._undos.push(redo);
     }
     return state;
   }

@@ -3,8 +3,11 @@ import { Collabodux } from '@collabodux/client';
 import { useMutate } from './use-mutate';
 import { removeUsers, setUserName } from './user-mutators';
 import { randomAnimalName } from '../utils/names';
+import { EditMetadata } from './edit-merge';
 
-export function addUserManagement(collabodux: Collabodux<ModelWithUsersType>) {
+export function addUserManagement<T extends ModelWithUsersType>(
+  collabodux: Collabodux<T, any, EditMetadata>,
+) {
   const mutate = useMutate(collabodux);
 
   let lastSession: string | undefined = undefined;
@@ -40,9 +43,8 @@ export function addUserManagement(collabodux: Collabodux<ModelWithUsersType>) {
           setUserName({
             session: lastSession,
             username: randomAnimalName(),
+            initial: true,
           }),
-          false,
-          false,
         );
       }
     }

@@ -3,16 +3,16 @@ import { useEffect, useState } from 'react';
 import shallowequal from 'shallowequal';
 import { JSONObject } from 'json-diff3';
 
-export function useLocalState<State extends JSONObject, Action>(
-  client: Collabodux<State>,
+export function useLocalState<State extends JSONObject>(
+  client: Collabodux<State, any, any>,
 ) {
   const [localState, setLocalState] = useState(client.localState);
   useEffect(() => client.subscribeLocalState(setLocalState), [client]);
   return localState;
 }
 
-export function useSession<State extends JSONObject, Action>(
-  client: Collabodux<State>,
+export function useSession<State extends JSONObject>(
+  client: Collabodux<State, any, any>,
 ): string | undefined {
   const [currentSession, setSession] = useState(client.session);
   useEffect(
@@ -27,8 +27,8 @@ export function useSession<State extends JSONObject, Action>(
   return currentSession;
 }
 
-export function useSessions<State extends JSONObject, Action>(
-  client: Collabodux<State>,
+export function useSessions<State extends JSONObject>(
+  client: Collabodux<State, any, any>,
 ): string[] {
   const [currentSessions, setSessions] = useState(client.sessions);
   useEffect(
@@ -43,8 +43,8 @@ export function useSessions<State extends JSONObject, Action>(
   return currentSessions;
 }
 
-export function useMappedLocalState<State extends JSONObject, Action, T>(
-  client: Collabodux<State>,
+export function useMappedLocalState<State extends JSONObject, T>(
+  client: Collabodux<State, any, any>,
   mapStateToProps: (state: State) => T,
 ) {
   const [partial, updatePartial] = useState<T>(
@@ -69,7 +69,7 @@ type UndoRedoFunctions = {
 };
 
 export function useUndoRedo<State extends JSONObject>(
-  client: Collabodux<State>,
+  client: Collabodux<State, any, any>,
 ): UndoRedoFunctions {
   const [result, setResult] = useState<UndoRedoFunctions>({});
   useEffect(
