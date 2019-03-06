@@ -11,6 +11,7 @@ import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
 import { useMutate } from '../dux/use-mutate';
 import { setUserFocus } from '../dux/user-mutators';
+import { EditMetadata } from '../dux/edit-merge';
 
 export default function FocusInput<T extends ModelWithUsersType>({
   focusId,
@@ -22,7 +23,7 @@ export default function FocusInput<T extends ModelWithUsersType>({
   focusId: string;
   value: string;
   textarea?: boolean;
-  collabodux: Collabodux<T, any, any>;
+  collabodux: Collabodux<T, any, EditMetadata>;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);

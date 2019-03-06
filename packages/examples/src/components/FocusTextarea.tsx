@@ -22,7 +22,7 @@ export default function FocusTextarea<T extends ModelWithUsersType>({
   focusId: string;
   textarea?: boolean;
   value: string;
-  collabodux: Collabodux<T>;
+  collabodux: Collabodux<T, any, any>;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);
@@ -44,7 +44,6 @@ export default function FocusTextarea<T extends ModelWithUsersType>({
               ? undefined
               : [selectionStart, selectionEnd],
         }),
-        false,
       );
     }
   }

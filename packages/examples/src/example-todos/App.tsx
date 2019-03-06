@@ -54,7 +54,7 @@ export function App() {
               focusId="title"
               value={title}
               onChange={({ target }) =>
-                mutate(setTitle({ title: target.value }), true, 2000)
+                mutate(setTitle({ title: target.value }))
               }
             />
           </label>
@@ -71,8 +71,6 @@ export function App() {
                   setSubtitle({
                     subtitle: target.value,
                   }),
-                  true,
-                  2000,
                 )
               }
             />
@@ -94,8 +92,6 @@ export function App() {
                 setLongText({
                   text: target.value,
                 }),
-                true,
-                2000,
               )
             }
           />
@@ -126,11 +122,7 @@ export function App() {
                 value={todo.label}
                 onChange={({ target }) => {
                   console.log('onchange');
-                  mutate(
-                    setTodoLabel({ index, label: target.value }),
-                    true,
-                    2000,
-                  );
+                  mutate(setTodoLabel({ index, label: target.value }));
                 }}
                 data-index={index}
               />{' '}

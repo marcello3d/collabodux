@@ -7,11 +7,12 @@ import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
 import { useMutate } from '../dux/use-mutate';
 import { setUserName } from '../dux/user-mutators';
+import { EditMetadata } from '../dux/edit-merge';
 
 export default function Users<T extends ModelWithUsersType>({
   collabodux,
 }: {
-  collabodux: Collabodux<T>;
+  collabodux: Collabodux<T, any, EditMetadata>;
 }) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);
