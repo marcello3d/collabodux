@@ -81,6 +81,10 @@ export class Collabodux<
     return this.undos.hasRedo;
   }
 
+  snapshot(): void {
+    return this.undos.snapshot();
+  }
+
   undo() {
     if (this.state.setLocal(this.undos.undo(this.state.local))) {
       this._localStateChanged();
@@ -102,7 +106,6 @@ export class Collabodux<
 
   setLocalState(newState: State, undoable: boolean = true): void {
     if (undoable) {
-      this.undos.snapshot();
       this.undos.trackEdit(this.state.local, newState);
     }
     if (this.state.setLocal(newState)) {

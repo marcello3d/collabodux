@@ -15,7 +15,7 @@ import FocusInput from '../components/FocusInput';
 import FocusTextarea from '../components/FocusTextarea';
 import Users from '../components/Users';
 import Focus from '../components/Focus';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 
 export function App() {
   const mutate = useMutate(collabodux);
@@ -54,7 +54,7 @@ export function App() {
               focusId="title"
               value={title}
               onChange={({ target }) =>
-                mutate(setTitle({ title: target.value }))
+                mutate(setTitle({ title: target.value }), true, 2000)
               }
             />
           </label>
@@ -71,6 +71,8 @@ export function App() {
                   setSubtitle({
                     subtitle: target.value,
                   }),
+                  true,
+                  2000,
                 )
               }
             />
@@ -92,6 +94,8 @@ export function App() {
                 setLongText({
                   text: target.value,
                 }),
+                true,
+                2000,
               )
             }
           />
@@ -122,7 +126,11 @@ export function App() {
                 value={todo.label}
                 onChange={({ target }) => {
                   console.log('onchange');
-                  mutate(setTodoLabel({ index, label: target.value }));
+                  mutate(
+                    setTodoLabel({ index, label: target.value }),
+                    true,
+                    2000,
+                  );
                 }}
                 data-index={index}
               />{' '}

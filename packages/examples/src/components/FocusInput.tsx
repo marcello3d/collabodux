@@ -9,7 +9,7 @@ import styles from './Focus.module.css';
 import { updateInputValueMovingSelection } from '../utils/update-cursor-positions';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 import { setUserFocus } from '../dux/user-mutators';
 
 export default function FocusInput<T extends ModelWithUsersType>({
@@ -44,7 +44,6 @@ export default function FocusInput<T extends ModelWithUsersType>({
               ? undefined
               : [selectionStart, selectionEnd],
         }),
-        false,
       );
     }
   }

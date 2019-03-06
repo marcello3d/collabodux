@@ -6,7 +6,7 @@ import styles from './Focus.module.css';
 import { useUserMap } from '../dux/use-user-map';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 import { setUserFocus } from '../dux/user-mutators';
 
 export default function Focus<T extends ModelWithUsersType>({

@@ -5,7 +5,7 @@ import { useSession } from '@collabodux/react-hooks';
 import { useUserMap } from '../dux/use-user-map';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 import { setUserName } from '../dux/user-mutators';
 
 export default function Users<T extends ModelWithUsersType>({
