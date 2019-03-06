@@ -9,6 +9,7 @@ import {
 import { JSONObject } from 'json-diff3';
 import { Subscriber, SubscriberChannel } from './subscriber-channel';
 import { PatchStateManager } from './patch-state-manager';
+import { UndoManager, UndoMerger, Undo } from './undo-manager';
 
 export type Validate<State, RawState = JSONObject> = (raw?: RawState) => State;
 export type Merger<State> = (base: State, local: State, remote: State) => State;
@@ -18,14 +19,16 @@ export type SessionData = {
   sessions: string[];
 };
 
-export { Connection };
+export { Connection, Undo };
 
 export class Collabodux<
   State extends RawState,
-  RawState extends JSONObject = JSONObject
+  RawState extends JSONObject,
+  EditMetadata
 > {
   private _sendingChanges = false;
   private state: PatchStateManager<State, RawState>;
+  private undos: UndoManager<State, EditMetadata>;
 
   private _localStateSubscribers = new SubscriberChannel<State>();
   private _sessionsStateSubscribers = new SubscriberChannel<SessionData>();
@@ -37,11 +40,13 @@ export class Collabodux<
     private connection: Connection,
     normalize: Validate<State, RawState>,
     mergeState: Merger<State>,
+    mergeEdit?: UndoMerger<State, EditMetadata>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this._onResponseMessage;
     this.connection.onClose = this._onClose;
     this.state = new PatchStateManager(normalize, mergeState);
+    this.undos = new UndoManager(mergeState, mergeEdit);
   }
   get ready(): boolean {
     return this.state.hasRemote;
@@ -70,14 +75,39 @@ export class Collabodux<
     return this._sessionsStateSubscribers.subscribe(subscriber);
   }
 
+  get hasUndo(): boolean {
+    return this.undos.nextUndo !== undefined;
+  }
+
+  get hasRedo(): boolean {
+    return this.undos.nextRedo !== undefined;
+  }
+
+  undo() {
+    if (this.state.setLocal(this.undos.undo(this.state.local))) {
+      this._localStateChanged();
+    }
+  }
+
+  redo() {
+    if (this.state.setLocal(this.undos.redo(this.state.local))) {
+      this._localStateChanged();
+    }
+  }
+
   private _sessionData(): SessionData {
     return {
       session: this._session,
       sessions: this._sessions,
     };
   }
-  setLocalState(newState: State) {
+
+  setLocalState(newState: State, editMetadata?: EditMetadata): void {
+    const priorState = this.state.local;
     if (this.state.setLocal(newState)) {
+      if (editMetadata !== undefined) {
+        this.undos.trackEdit(priorState, newState, editMetadata);
+      }
       this._localStateChanged();
     }
   }

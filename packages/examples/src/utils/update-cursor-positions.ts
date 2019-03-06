@@ -1,4 +1,4 @@
-import { diff3MergeStringRanges } from './merge-edits';
+import { diff3MergeStringRanges } from './string-diff3';
 
 export function updateInputValueMovingSelection(
   value: string,

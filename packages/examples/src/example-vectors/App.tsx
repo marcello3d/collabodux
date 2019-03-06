@@ -6,7 +6,7 @@ import FocusInput from '../components/FocusInput';
 import Canvas from './components/Canvas';
 import Users from '../components/Users';
 import { setTitle } from './model/mutators';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 
 export function App() {
   const mutate = useMutate(collabodux);

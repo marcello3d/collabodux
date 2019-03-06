@@ -7,7 +7,7 @@ import { useUserMap } from '../../dux/use-user-map';
 import toMaterialStyle from 'material-color-hash';
 import useEventEffect from '../../utils/useEventEffect';
 import FocusInput from '../../components/FocusInput';
-import { useMutate } from '../../dux/mutator';
+import { useMutate } from '../../dux/use-mutate';
 import { setUserSelectedItem } from '../../dux/user-mutators';
 import { addShape, createCanvas, updateShape } from '../model/mutators';
 

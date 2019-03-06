@@ -7,7 +7,7 @@ import toMaterialStyle from 'material-color-hash';
 
 import styles from './Focus.module.css';
 import { updateInputValueMovingSelection } from '../utils/update-cursor-positions';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
 import { setUserFocus } from '../dux/user-mutators';
@@ -22,7 +22,7 @@ export default function FocusTextarea<T extends ModelWithUsersType>({
   focusId: string;
   textarea?: boolean;
   value: string;
-  collabodux: Collabodux<T>;
+  collabodux: Collabodux<T, any, any>;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);

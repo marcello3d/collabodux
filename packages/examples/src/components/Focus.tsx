@@ -6,8 +6,9 @@ import styles from './Focus.module.css';
 import { useUserMap } from '../dux/use-user-map';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 import { setUserFocus } from '../dux/user-mutators';
+import { EditMetadata } from '../dux/edit-merge';
 
 export default function Focus<T extends ModelWithUsersType>({
   focusId,
@@ -16,7 +17,7 @@ export default function Focus<T extends ModelWithUsersType>({
 }: {
   focusId: string;
   children: React.ReactNode;
-  collabodux: Collabodux<T>;
+  collabodux: Collabodux<T, any, EditMetadata>;
 }) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);

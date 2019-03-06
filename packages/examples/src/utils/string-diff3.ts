@@ -69,16 +69,17 @@ export function diff3MergeStringRanges<T>(
     if (index[0] === -1) {
       const [
         ,
-        // type
         leftStart,
-        aLength, // baseStart // baseLength
-        ,
-        ,
+        leftLength,
+        baseStart,
+        baseLength,
         rightStart,
         rightLength,
       ] = index;
-      const leftEnd = leftStart + aLength;
+      const leftEnd = leftStart + leftLength;
       const leftSlice = left.slice(leftStart, leftEnd);
+      const baseEnd = baseStart + baseLength;
+      const baseSlice = base.slice(baseStart, baseEnd);
       const rightEnd = rightStart + rightLength;
       const rightSlice = right.slice(rightStart, rightEnd);
       forEachSliceRanges(
@@ -88,15 +89,34 @@ export function diff3MergeStringRanges<T>(
         result.length,
         addRange,
       );
-      result += leftSlice;
-      if (leftSlice !== rightSlice) {
-        forEachSliceRanges(
-          rightRanges,
-          rightStart,
-          rightEnd,
-          result.length,
-          addRange,
-        );
+      forEachSliceRanges(
+        rightRanges,
+        rightStart,
+        rightEnd,
+        result.length,
+        addRange,
+      );
+      if (baseLength) {
+        // If left/right slice starts/ends with base slice,
+        // then it was removed from the other slice, so don't include it
+        if (leftSlice.startsWith(baseSlice)) {
+          result += leftSlice.slice(baseLength);
+          result += rightSlice;
+        } else if (rightSlice.startsWith(baseSlice)) {
+          result += leftSlice;
+          result += rightSlice.slice(baseLength);
+        } else if (leftSlice.endsWith(baseSlice)) {
+          result += leftSlice.slice(0, leftLength - baseLength);
+          result += rightSlice;
+        } else if (rightSlice.endsWith(baseSlice)) {
+          result += leftSlice;
+          result += rightSlice.slice(0, rightLength - baseLength);
+        } else {
+          result += leftSlice;
+          result += rightSlice;
+        }
+      } else {
+        result += leftSlice;
         result += rightSlice;
       }
     } else {

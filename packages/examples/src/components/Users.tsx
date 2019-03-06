@@ -5,22 +5,24 @@ import { useSession } from '@collabodux/react-hooks';
 import { useUserMap } from '../dux/use-user-map';
 import { Collabodux } from '@collabodux/client';
 import { ModelWithUsersType } from '../dux/user-model';
-import { useMutate } from '../dux/mutator';
+import { useMutate } from '../dux/use-mutate';
 import { setUserName } from '../dux/user-mutators';
+import { EditMetadata } from '../dux/edit-merge';
 
 export default function Users<T extends ModelWithUsersType>({
   collabodux,
 }: {
-  collabodux: Collabodux<T>;
+  collabodux: Collabodux<T, any, EditMetadata>;
 }) {
   const mutate = useMutate(collabodux);
   const currentSession = useSession(collabodux);
   const userMap = useUserMap(collabodux);
 
   const currentUsername =
-    currentSession && userMap[currentSession]
-      ? userMap[currentSession].username
-      : '';
+    (currentSession &&
+      userMap[currentSession] &&
+      userMap[currentSession].username) ||
+    '';
   return (
     <nav className={styles.root}>
       <input
