@@ -14,7 +14,7 @@ export function useLocalState<State extends JSONObject>(
 export function useSession<State extends JSONObject>(
   client: Collabodux<State, any, any>,
 ): string | undefined {
-  const [currentSession, setSession] = useState(client.session);
+  const [currentSession, setSession] = useState(client.currentSession);
   useEffect(
     () =>
       client.subscribeSessions(({ session }) => {
