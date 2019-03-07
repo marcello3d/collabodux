@@ -23,15 +23,8 @@ describe('SubscriberChannel', () => {
   it('double subscribes', () => {
     const channel = new SubscriberChannel<string>();
     const subscriber = jest.fn();
-    const unsubscribe1 = channel.subscribe(subscriber);
-    channel.send('1');
-    const unsubscribe2 = channel.subscribe(subscriber);
-    channel.send('2');
-    unsubscribe1();
-    channel.send('3');
-    unsubscribe2();
-    channel.send('4');
-    expect(subscriber.mock.calls).toEqual([['1'], ['2']]);
+    channel.subscribe(subscriber);
+    expect(() => channel.subscribe(subscriber)).toThrow('already subscribed');
   });
 
   it('double unsubscribes', () => {
@@ -40,7 +33,7 @@ describe('SubscriberChannel', () => {
     const unsubscribe = channel.subscribe(subscriber);
     channel.send('hello');
     unsubscribe();
-    unsubscribe();
+    expect(() => unsubscribe()).toThrow('already unsubscribed');
     channel.send('world');
     expect(subscriber.mock.calls).toEqual([['hello']]);
   });

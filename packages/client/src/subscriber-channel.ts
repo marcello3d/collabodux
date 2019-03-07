@@ -1,16 +1,22 @@
 export type Subscriber<T> = (value: T) => void;
 export type Unsubscriber = () => void;
-const noop = () => {};
 
 export class SubscriberChannel<T> {
   private _subscribers = new Set<Subscriber<T>>();
 
   subscribe(subscriber: Subscriber<T>): Unsubscriber {
-    if (!this._subscribers.has(subscriber)) {
-      this._subscribers.add(subscriber);
-      return () => this._subscribers.delete(subscriber);
+    if (this._subscribers.has(subscriber)) {
+      throw new Error('already subscribed');
     }
-    return noop;
+    this._subscribers.add(subscriber);
+    let unsubscribed = false;
+    return () => {
+      if (unsubscribed) {
+        throw new Error('already unsubscribed');
+      }
+      this._subscribers.delete(subscriber);
+      unsubscribed = true;
+    };
   }
 
   send(value: T) {
