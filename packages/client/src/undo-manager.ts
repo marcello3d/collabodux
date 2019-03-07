@@ -10,27 +10,24 @@ export type Undo<State, Metadata> = {
   metadata: Metadata;
 };
 
-export type UndoMerger<State, Metadata> = (
-  undo: Undo<State, Metadata>,
-  metadata: Metadata,
-) => boolean;
-
 export class UndoManager<State extends JSONObject, Metadata = undefined> {
   private _undos: Undo<State, Metadata>[] = [];
   private _redos: Undo<State, Metadata>[] = [];
 
-  constructor(
-    private readonly mergeStates: Merger<State>,
-    private readonly mergeEdit: UndoMerger<State, Metadata> = () => true,
-  ) {}
+  constructor(private readonly mergeStates: Merger<State>) {}
 
   /**
    * Track edit in current undo set
    */
-  trackEdit(before: State, after: State, metadata: Metadata): State {
+  trackEdit(
+    before: State,
+    after: State,
+    metadata: Metadata,
+    merge: boolean = false,
+  ): State {
     const undos = this._undos;
     let undo = undos[undos.length - 1];
-    if (undos.length === 0 || !this.mergeEdit(undo, metadata)) {
+    if (undos.length === 0 || !merge) {
       undo = {
         edits: [],
         count: 0,
@@ -51,6 +48,7 @@ export class UndoManager<State extends JSONObject, Metadata = undefined> {
       });
     }
     undo.count++;
+    undo.metadata = metadata;
     this._redos = [];
     return after;
   }

@@ -1,27 +1,10 @@
 import { diff3, JSONObject } from 'json-diff3';
-import { UndoMerger, UndoManager } from './undo-manager';
+import { UndoManager } from './undo-manager';
 
-function makeManager<Metadata>(mergeEdit?: UndoMerger<JSONObject, Metadata>) {
+function makeManager<Metadata>() {
   return new UndoManager<JSONObject, Metadata>(
     (base, local, remote) => diff3(base, local, remote) as JSONObject,
-    mergeEdit,
   );
-}
-
-function makeTypeBasedManager() {
-  return makeManager<{ type: string }>(
-    (undo, { type }) => undo.metadata.type === type,
-  );
-}
-
-function makeTimeBasedManager() {
-  return makeManager<{ time: number }>(
-    (undo, { time }) => time < undo.metadata.time + 10,
-  );
-}
-
-function makeLengthBasedManager() {
-  return makeManager(({ count }) => count < 5);
 }
 
 describe('UndoManager', () => {
@@ -94,6 +77,7 @@ describe('UndoManager', () => {
         lastName: 'foo',
       },
       {},
+      true,
     );
     state = manager.undo(state);
     expect(state).toEqual({});
@@ -116,8 +100,23 @@ describe('UndoManager', () => {
     expect(manager.nextRedo).toBeUndefined();
   });
 
-  it('split edits based on metadata', () => {
-    const manager = makeTypeBasedManager();
+  it('metadata is populated', () => {
+    const manager = makeManager<{ type: string }>();
+    let state = {};
+    state = manager.trackEdit(
+      state,
+      {
+        firstName: 'foo',
+      },
+      { type: 'a' },
+    );
+    expect(manager.nextUndo && manager.nextUndo.metadata).toEqual({
+      type: 'a',
+    });
+  });
+
+  it('metadata updates when merging', () => {
+    const manager = makeManager<{ type: string }>();
     let state = {};
     state = manager.trackEdit(
       state,
@@ -133,103 +132,15 @@ describe('UndoManager', () => {
         lastName: 'foo',
       },
       { type: 'b' },
+      true,
     );
-    state = manager.undo(state);
-    expect(state).toEqual({
-      firstName: 'foo',
+    expect(manager.nextUndo && manager.nextUndo.metadata).toEqual({
+      type: 'b',
     });
-  });
-  it('merge edits based on metadata', () => {
-    const manager = makeTypeBasedManager();
-    let state = {};
-    state = manager.trackEdit(
-      state,
-      {
-        firstName: 'foo',
-      },
-      { type: 'a' },
-    );
-    state = manager.trackEdit(
-      state,
-      {
-        firstName: 'foo',
-        lastName: 'foo',
-      },
-      { type: 'a' },
-    );
     state = manager.undo(state);
-    expect(state).toEqual({});
   });
 
-  it('split edits based on edit count', () => {
-    const manager = makeLengthBasedManager();
-    let state = {};
-    state = manager.trackEdit(state, { firstName: '1' }, {});
-    state = manager.trackEdit(state, { firstName: '2' }, {});
-    state = manager.trackEdit(state, { firstName: '3' }, {});
-    state = manager.trackEdit(state, { firstName: '4' }, {});
-    state = manager.trackEdit(state, { firstName: '5' }, {});
-    state = manager.trackEdit(state, { firstName: '6' }, {});
-    state = manager.trackEdit(state, { firstName: '7' }, {});
-    state = manager.undo(state);
-    expect(state).toEqual({
-      firstName: '5',
-    });
-  });
-  it('split edits based on "time"', () => {
-    const manager = makeTimeBasedManager();
-    let state = {};
-    state = manager.trackEdit(state, { firstName: '1' }, { time: 0 });
-    state = manager.trackEdit(state, { firstName: '2' }, { time: 5 });
-    state = manager.trackEdit(state, { firstName: '3' }, { time: 10 });
-    state = manager.trackEdit(state, { firstName: '4' }, { time: 20 });
-    state = manager.trackEdit(state, { firstName: '5' }, { time: 50 });
-    state = manager.undo(state);
-    expect(state).toEqual({
-      firstName: '4',
-    });
-    state = manager.undo(state);
-    expect(state).toEqual({
-      firstName: '3',
-    });
-    state = manager.undo(state);
-    expect(state).toEqual({
-      firstName: '2',
-    });
-    state = manager.undo(state);
-    expect(state).toEqual({});
-  });
-
-  it('undo-redo local edit after snapshot', () => {
-    const manager = makeTypeBasedManager();
-    let state = {};
-    state = manager.trackEdit(
-      state,
-      {
-        firstName: 'foo',
-      },
-      { type: 'a' },
-    );
-    state = manager.trackEdit(
-      state,
-      {
-        firstName: 'foo',
-        lastName: 'foo',
-      },
-      { type: 'b' },
-    );
-    state = manager.undo(state);
-    expect(state).toEqual({
-      firstName: 'foo',
-    });
-    state = manager.redo(state);
-    expect(state).toEqual({
-      firstName: 'foo',
-      lastName: 'foo',
-    });
-  });
-
-  it('undo with remote edits', () => {
+  it('undoes only tracked edits', () => {
     const manager = makeManager();
     let state = {};
     state = manager.trackEdit(state, { firstName: 'foo' }, {});
@@ -243,7 +154,7 @@ describe('UndoManager', () => {
     });
   });
 
-  it('undo-redo with remote edits', () => {
+  it('undoes and redoes only tracked edit', () => {
     const manager = makeManager();
     let state = {};
     state = manager.trackEdit(state, { firstName: 'foo' }, {});
@@ -260,7 +171,7 @@ describe('UndoManager', () => {
     });
   });
 
-  it('undo two local edits with non undo edit in middle', () => {
+  it('undo two tracked edits with untracked edit in middle', () => {
     const manager = makeManager();
     let state = {};
     state = manager.trackEdit(state, { firstName: 'foo' }, {});
@@ -276,6 +187,7 @@ describe('UndoManager', () => {
         lastName: 'foo',
       },
       {},
+      true,
     );
     state = manager.undo(state);
     expect(state).toEqual({

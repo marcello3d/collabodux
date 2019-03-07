@@ -9,7 +9,8 @@ import {
 import { JSONObject } from 'json-diff3';
 import { Subscriber, SubscriberChannel } from './subscriber-channel';
 import { PatchStateManager } from './patch-state-manager';
-import { UndoManager, UndoMerger, Undo } from './undo-manager';
+import { Undo, UndoManager } from './undo-manager';
+import { SessionManager } from './session-manager';
 
 export type Validate<State, RawState = JSONObject> = (raw?: RawState) => State;
 export type Merger<State> = (base: State, local: State, remote: State) => State;
@@ -21,6 +22,11 @@ export type SessionData = {
 
 export { Connection, Undo };
 
+export type UndoMerger<State, Metadata> = (
+  undo: Undo<State, Metadata>,
+  metadata: Metadata,
+) => boolean;
+
 export class Collabodux<
   State extends RawState,
   RawState extends JSONObject,
@@ -31,22 +37,19 @@ export class Collabodux<
   private undos: UndoManager<State, EditMetadata>;
 
   private _localStateSubscribers = new SubscriberChannel<State>();
-  private _sessionsStateSubscribers = new SubscriberChannel<SessionData>();
-  private _sessions: string[] = [];
-  private _sessionSet = new Set<string>();
-  private _session: string | undefined = undefined;
+  private _sessions = new SessionManager();
 
   constructor(
     private connection: Connection,
     normalize: Validate<State, RawState>,
     mergeState: Merger<State>,
-    mergeEdit?: UndoMerger<State, EditMetadata>,
+    private mergeEdit?: UndoMerger<State, EditMetadata>,
     private bufferTimeMs: number = 1000 / 25, // send events at 25 fps
   ) {
     this.connection.onResponseMessage = this._onResponseMessage;
     this.connection.onClose = this._onClose;
     this.state = new PatchStateManager(normalize, mergeState);
-    this.undos = new UndoManager(mergeState, mergeEdit);
+    this.undos = new UndoManager(mergeState);
   }
   get ready(): boolean {
     return this.state.hasRemote;
@@ -57,12 +60,12 @@ export class Collabodux<
     return this.state.local;
   }
 
-  get session(): string | undefined {
-    return this._session;
+  get currentSession(): string | undefined {
+    return this._sessions.currentSession;
   }
 
   get sessions(): string[] {
-    return this._sessions;
+    return this._sessions.sessions;
   }
 
   subscribeLocalState(subscriber: Subscriber<State>): () => void {
@@ -71,8 +74,7 @@ export class Collabodux<
   }
 
   subscribeSessions(subscriber: Subscriber<SessionData>): () => void {
-    subscriber(this._sessionData());
-    return this._sessionsStateSubscribers.subscribe(subscriber);
+    return this._sessions.subscribe(subscriber);
   }
 
   get hasUndo(): boolean {
@@ -95,27 +97,22 @@ export class Collabodux<
     }
   }
 
-  private _sessionData(): SessionData {
-    return {
-      session: this._session,
-      sessions: this._sessions,
-    };
-  }
-
   setLocalState(newState: State, editMetadata?: EditMetadata): void {
     const priorState = this.state.local;
     if (this.state.setLocal(newState)) {
       if (editMetadata !== undefined) {
-        this.undos.trackEdit(priorState, newState, editMetadata);
+        const { nextUndo } = this.undos;
+        const mergeEdit = this.mergeEdit;
+        this.undos.trackEdit(
+          priorState,
+          newState,
+          editMetadata,
+          mergeEdit && nextUndo ? mergeEdit(nextUndo, editMetadata) : false,
+        );
       }
       this._localStateChanged();
     }
   }
-  private _sendSessionState() {
-    this._sessions = Array.from(this._sessionSet).sort();
-    this._sessionsStateSubscribers.send(this._sessionData());
-  }
-
   private _onResponseMessage = (message: ResponseMessage): void => {
     switch (message.type) {
       case MessageType.state:
@@ -127,13 +124,11 @@ export class Collabodux<
         break;
 
       case MessageType.join:
-        this._sessionSet.add(message.session);
-        this._sendSessionState();
+        this._sessions.addSession(message.session);
         break;
 
       case MessageType.leave:
-        this._sessionSet.delete(message.session);
-        this._sendSessionState();
+        this._sessions.removeSession(message.session);
         break;
 
       default:
@@ -149,9 +144,7 @@ export class Collabodux<
     vtag,
   }: StateMessage): void {
     const changed = this.state.mergeRemote(state, vtag);
-    this._session = session;
-    this._sessionSet = new Set(sessions);
-    this._sendSessionState();
+    this._sessions.setSessions(session, sessions);
     if (changed) {
       this._localStateChanged();
     }
