@@ -3,6 +3,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "repository": "https://github.com/marcello3d/collabodux",
+  "author": "marcello@cellosoft.com",
+  "license": "Zlib",
   "scripts": {
     "build": "lerna run build",
     "test": "jest --watch",
