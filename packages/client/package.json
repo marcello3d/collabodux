@@ -16,7 +16,7 @@
     "json-touch-patch": "0.11.2",
     "rfc6902": "3.0.1",
     "typescript": "3.3.3",
-    "ws": "6.1.4"
+    "ws": "7.4.6"
   },
   "devDependencies": {
     "typescript": "3.3.3"
